@@ -45,7 +45,7 @@ export function HomePage() {
 					<Title order={1} fz={{ base: 'h2', sm: 'h1' }}>
 						WB Media Downloader
 					</Title>
-					<Text c='dimmed'>Фото и видео с карточки товара Wildberries по артикулу</Text>
+					<Text>Скачивайте фото и видео с карточек Wildberries.</Text>
 				</Stack>
 				<ArticleForm onIntent={preloadProductMediaModal} loading={opening} onSubmit={open} />
 			</Stack>

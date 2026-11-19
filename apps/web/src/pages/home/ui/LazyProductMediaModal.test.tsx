@@ -18,7 +18,7 @@ vi.mock('../lib/reload-page', () => ({ reloadPage: vi.fn() }))
 async function openArticle() {
 	const user = userEvent.setup()
 	renderWithProviders(<HomePage />)
-	await user.type(screen.getByLabelText('Артикул'), String(KNOWN_NM))
+	await user.type(screen.getByLabelText('Артикул или ссылка WB'), String(KNOWN_NM))
 	await user.click(screen.getByRole('button', { name: 'Скачать фото' }))
 
 	return user
@@ -37,7 +37,7 @@ describe('LazyProductMediaModal when the modal chunk fails to load', () => {
 		await openArticle()
 
 		expect(await findLoadError()).toBeInTheDocument()
-		expect(screen.getByLabelText('Артикул')).toBeEnabled()
+		expect(screen.getByLabelText('Артикул или ссылка WB')).toBeEnabled()
 		expect(screen.queryByText('Что-то пошло не так')).not.toBeInTheDocument()
 	})
 

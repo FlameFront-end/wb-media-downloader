@@ -52,6 +52,7 @@ export function ProductMediaModal({ productId, onClose, onExited }: ProductMedia
 			opened={opened}
 			onClose={onClose}
 			title='Фото и видео товара'
+			closeButtonProps={{ 'aria-label': 'Закрыть галерею' }}
 			size='xl'
 			// Keep the dialog footprint stable while the card loads.
 			yOffset='6dvh'

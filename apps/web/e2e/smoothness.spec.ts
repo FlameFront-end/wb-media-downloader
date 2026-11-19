@@ -8,7 +8,7 @@ const CARD_URL = new RegExp(`/${KNOWN_NM}/info/ru/card\\.json$`)
 const submitButton = (page: Page) => page.getByRole('button', { name: 'Скачать фото', exact: true })
 
 async function submitArticle(page: Page) {
-	await page.getByLabel('Артикул').fill(String(KNOWN_NM))
+	await page.getByLabel('Артикул или ссылка WB').fill(String(KNOWN_NM))
 	await submitButton(page).click()
 }
 
@@ -113,7 +113,7 @@ test('the submit button spins while the modal chunk is on its way', async ({ pag
 test.describe('focus returns where the modal was opened from', () => {
 	test('the input, when submitted with Enter', async ({ page }) => {
 		await page.goto('/')
-		const input = page.getByLabel('Артикул')
+		const input = page.getByLabel('Артикул или ссылка WB')
 		await input.fill(String(KNOWN_NM))
 		await input.press('Enter')
 		await expect(page.getByRole('dialog').getByRole('heading', { name: cardFixture.imt_name })).toBeVisible()
@@ -203,7 +203,7 @@ test('closing the modal keeps the gallery in place during the exit transition', 
 
 test('explains why a gallery is paused offline and resumes on reconnect', async ({ page, context }) => {
 	await page.goto('/')
-	await page.getByLabel('Артикул').focus()
+	await page.getByLabel('Артикул или ссылка WB').focus()
 	await page.waitForFunction(() =>
 		performance.getEntriesByType('resource').some(entry => /product-media-modal-.*\.js$/.test(entry.name))
 	)

@@ -13,7 +13,7 @@ function setup() {
 
 	return {
 		user,
-		input: screen.getByLabelText('Артикул'),
+		input: screen.getByLabelText('Артикул или ссылка WB'),
 		submit: screen.getByRole('button', { name: 'Скачать фото' })
 	}
 }

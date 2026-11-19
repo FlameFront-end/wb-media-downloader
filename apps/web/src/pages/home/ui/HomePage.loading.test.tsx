@@ -31,7 +31,7 @@ describe('HomePage while the modal chunk is still loading', () => {
 		const user = userEvent.setup()
 		renderWithProviders(<HomePage />)
 
-		await user.type(screen.getByLabelText('Артикул'), String(KNOWN_NM))
+		await user.type(screen.getByLabelText('Артикул или ссылка WB'), String(KNOWN_NM))
 		await user.click(screen.getByRole('button', { name: 'Скачать фото' }))
 
 		const submit = screen.getByRole('button', { name: 'Скачать фото' })

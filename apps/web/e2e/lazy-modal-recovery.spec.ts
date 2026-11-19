@@ -5,7 +5,7 @@ import { cardFixture, expect, KNOWN_NM, test } from './fixtures.ts'
 const MODAL_CHUNK = '**/assets/product-media-modal-*.js'
 
 async function openArticle(page: Page) {
-	await page.getByLabel('Артикул').fill(String(KNOWN_NM))
+	await page.getByLabel('Артикул или ссылка WB').fill(String(KNOWN_NM))
 	await page.getByRole('button', { name: 'Скачать фото' }).click()
 }
 
@@ -23,7 +23,7 @@ test.describe('modal chunk failure', () => {
 		const chunkFailed = page.waitForEvent('requestfailed', request =>
 			request.url().includes('product-media-modal-')
 		)
-		await page.getByLabel('Артикул').focus()
+		await page.getByLabel('Артикул или ссылка WB').focus()
 		await chunkFailed
 		await expect(page.getByRole('alert')).toHaveCount(0)
 
@@ -31,7 +31,7 @@ test.describe('modal chunk failure', () => {
 
 		await expect(reloadButton(page)).toBeVisible()
 		await expect(page.getByText('Что-то пошло не так')).toHaveCount(0)
-		await expect(page.getByLabel('Артикул')).toBeEditable()
+		await expect(page.getByLabel('Артикул или ссылка WB')).toBeEditable()
 	})
 
 	test('page reload recovers once the network is back', async ({ page }) => {

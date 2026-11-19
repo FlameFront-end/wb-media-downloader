@@ -1,8 +1,10 @@
 import { useState, type SubmitEvent } from 'react'
 
-import { Box, Button, Group, TextInput } from '@mantine/core'
+import { Box, Button, TextInput } from '@mantine/core'
 
 import { parseArticle } from '../model/parse-article'
+
+import classes from './ArticleForm.module.css'
 
 interface ArticleFormProps {
 	onSubmit: (article: number) => void
@@ -32,8 +34,8 @@ export function ArticleForm({ onSubmit, onIntent, loading = false }: ArticleForm
 	return (
 		<form onSubmit={handleSubmit} noValidate>
 			<TextInput
-				label='Артикул'
-				placeholder='604174866 или ссылка'
+				label='Артикул или ссылка WB'
+				placeholder='Например, 604174866'
 				value={value}
 				onChange={event => {
 					setValue(event.currentTarget.value)
@@ -41,16 +43,18 @@ export function ArticleForm({ onSubmit, onIntent, loading = false }: ArticleForm
 				}}
 				error={error}
 				onFocus={onIntent}
-				inputMode='numeric'
+				inputMode='url'
+				autoCapitalize='none'
+				spellCheck={false}
 				autoComplete='off'
 				// Button next to the input, label above and error below both: aligned without magic offsets
 				inputContainer={input => (
-					<Group gap='sm' wrap='nowrap' align='flex-start'>
-						<Box flex={1}>{input}</Box>
+					<Box className={classes.controls}>
+						{input}
 						<Button type='submit' loading={loading} onPointerEnter={onIntent}>
 							Скачать фото
 						</Button>
-					</Group>
+					</Box>
 				)}
 			/>
 		</form>

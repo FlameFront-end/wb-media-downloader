@@ -15,7 +15,7 @@ async function openLongGallery(page: Page, viewport: { width: number; height: nu
 		})
 	)
 	await page.goto('/')
-	await page.getByLabel('Артикул').fill(String(KNOWN_NM))
+	await page.getByLabel('Артикул или ссылка WB').fill(String(KNOWN_NM))
 	await page.getByRole('button', { name: 'Скачать фото' }).click()
 
 	const dialog = page.getByRole('dialog')

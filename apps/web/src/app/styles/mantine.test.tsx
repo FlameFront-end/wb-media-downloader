@@ -44,7 +44,7 @@ function expectStylesFor(classes: string[]) {
 async function openModal(article: number) {
 	const user = userEvent.setup()
 	renderWithProviders(<HomePage />)
-	await user.type(screen.getByLabelText('Артикул'), String(article))
+	await user.type(screen.getByLabelText('Артикул или ссылка WB'), String(article))
 	await user.click(screen.getByRole('button', { name: 'Скачать фото' }))
 
 	return user
