@@ -1,0 +1,13 @@
+.title {
+	font-weight: 600;
+}
+
+/* A clear edge between the sticky header and photos scrolling under it */
+.header {
+	border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+/* Mantine drops the body top padding after a header: restore the gap under the border */
+.body {
+	padding-top: var(--mb-padding, var(--mantine-spacing-md));
+}

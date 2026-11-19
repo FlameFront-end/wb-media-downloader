@@ -1,6 +1,6 @@
 import { useState, type SubmitEvent } from 'react'
 
-import { Button, Group, TextInput } from '@mantine/core'
+import { Box, Button, Group, TextInput } from '@mantine/core'
 
 import { parseArticle } from '../model/parse-article'
 
@@ -29,25 +29,28 @@ export function ArticleForm({ onSubmit, onIntent }: ArticleFormProps) {
 
 	return (
 		<form onSubmit={handleSubmit} noValidate>
-			<Group align='flex-start' gap='sm' wrap='nowrap'>
-				<TextInput
-					flex={1}
-					label='Артикул'
-					placeholder='604174866 или ссылка на товар'
-					value={value}
-					onChange={event => {
-						setValue(event.currentTarget.value)
-						setError(null)
-					}}
-					error={error}
-					onFocus={onIntent}
-					inputMode='numeric'
-					autoComplete='off'
-				/>
-				<Button type='submit' mt={25} onPointerEnter={onIntent}>
-					Скачать фото
-				</Button>
-			</Group>
+			<TextInput
+				label='Артикул'
+				placeholder='604174866 или ссылка'
+				value={value}
+				onChange={event => {
+					setValue(event.currentTarget.value)
+					setError(null)
+				}}
+				error={error}
+				onFocus={onIntent}
+				inputMode='numeric'
+				autoComplete='off'
+				// Button next to the input, label above and error below both: aligned without magic offsets
+				inputContainer={input => (
+					<Group gap='sm' wrap='nowrap' align='flex-start'>
+						<Box flex={1}>{input}</Box>
+						<Button type='submit' onPointerEnter={onIntent}>
+							Скачать фото
+						</Button>
+					</Group>
+				)}
+			/>
 		</form>
 	)
 }

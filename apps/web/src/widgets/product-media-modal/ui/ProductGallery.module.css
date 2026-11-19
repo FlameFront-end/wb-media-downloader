@@ -1,0 +1,12 @@
+/* Full-bleed bar at the bottom of the modal body (the modal content is the scroll container) */
+.footer {
+	position: sticky;
+	bottom: 0;
+	z-index: 1;
+	margin-inline: calc(var(--mb-padding, var(--mantine-spacing-md)) * -1);
+	margin-bottom: calc(var(--mb-padding, var(--mantine-spacing-md)) * -1);
+	padding: var(--mantine-spacing-sm) var(--mb-padding, var(--mantine-spacing-md));
+	padding-bottom: max(var(--mantine-spacing-sm), env(safe-area-inset-bottom));
+	border-top: 1px solid var(--mantine-color-default-border);
+	background-color: var(--mantine-color-body);
+}

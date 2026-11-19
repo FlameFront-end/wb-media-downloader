@@ -16,7 +16,9 @@ export function HomePage() {
 		<Container size='sm' py='xl'>
 			<Stack gap='lg'>
 				<Stack gap={4}>
-					<Title order={1}>WB Media Downloader</Title>
+					<Title order={1} fz={{ base: 'h2', sm: 'h1' }}>
+						WB Media Downloader
+					</Title>
 					<Text c='dimmed'>Фото и видео с карточки товара Wildberries по артикулу</Text>
 				</Stack>
 				<ArticleForm

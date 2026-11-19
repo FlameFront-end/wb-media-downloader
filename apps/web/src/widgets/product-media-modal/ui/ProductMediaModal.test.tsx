@@ -1,7 +1,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { cardFixture, KNOWN_NM, MISSING_NM } from '../../../../test/msw/fixtures/wb'
 import { server } from '../../../../test/msw/server'
@@ -20,6 +20,25 @@ describe('ProductMediaModal', () => {
 		renderModal(null)
 
 		expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+	})
+
+	it.each([
+		['phone', true],
+		['wider screen', false]
+	])('takes the full screen only on a %s', async (_, isPhone) => {
+		vi.spyOn(window, 'matchMedia').mockImplementation(query =>
+			Object.assign(new EventTarget(), {
+				media: query,
+				matches: isPhone && query === '(max-width: 36em)',
+				onchange: null,
+				addListener: vi.fn(),
+				removeListener: vi.fn()
+			})
+		)
+		renderModal(KNOWN_NM)
+
+		const dialog = await screen.findByRole('dialog')
+		expect(dialog.hasAttribute('data-full-screen')).toBe(isPhone)
 	})
 
 	it('shows skeleton while loading', async () => {

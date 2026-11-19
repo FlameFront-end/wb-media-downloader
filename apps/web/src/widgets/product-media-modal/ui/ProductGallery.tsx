@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 
-import { Divider, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core'
+import { Box, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core'
 
 import type { Product } from '@/entities/product'
 import { DownloadPhotosButton } from '@/features/download-photos'
 import { DownloadVideoButton } from '@/features/download-video'
 import { SelectablePhoto, SelectAllPhotos, usePhotoSelection } from '@/features/select-photos'
+
+import classes from './ProductGallery.module.css'
 
 interface ProductGalleryProps {
 	product: Product
@@ -40,11 +42,13 @@ export function ProductGallery({ product }: ProductGalleryProps) {
 				</>
 			)}
 
-			<Divider />
-			<Group align='flex-start' justify='space-between' gap='md'>
-				<DownloadPhotosButton product={product} selectedIndexes={selection.selectedIndexes} />
-				<DownloadVideoButton product={product} />
-			</Group>
+			{/* Sticks to the bottom of the scrolling modal: downloads stay in reach in a long gallery */}
+			<Box className={classes.footer}>
+				<Group align='flex-start' justify='space-between' gap='md'>
+					<DownloadPhotosButton product={product} selectedIndexes={selection.selectedIndexes} />
+					<DownloadVideoButton product={product} />
+				</Group>
+			</Box>
 		</Stack>
 	)
 }

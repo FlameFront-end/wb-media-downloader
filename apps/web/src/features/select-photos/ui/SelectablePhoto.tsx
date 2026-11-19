@@ -22,7 +22,9 @@ export const SelectablePhoto = memo(function SelectablePhoto({
 }: SelectablePhotoProps) {
 	return (
 		<Box component='label' className={classes.tile} data-selected={selected || undefined}>
-			<ProductPhotoImage photo={photo} productName={productName} />
+			<Box className={classes.image}>
+				<ProductPhotoImage photo={photo} productName={productName} />
+			</Box>
 			<Checkbox
 				className={classes.checkbox}
 				checked={selected}

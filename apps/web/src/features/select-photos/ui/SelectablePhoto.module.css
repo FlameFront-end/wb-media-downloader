@@ -1,28 +1,51 @@
 .tile {
 	position: relative;
 	display: block;
-	overflow: hidden;
 	border-radius: var(--mantine-radius-sm);
 	outline: 2px solid transparent;
-	outline-offset: -2px;
+	outline-offset: 2px;
 	cursor: pointer;
+	transition: outline-color 120ms ease;
+}
+
+/* Dim only the photo: the checkbox keeps full contrast */
+.image {
 	transition:
-		outline-color 120ms ease,
-		opacity 120ms ease;
-	opacity: 0.55;
+		opacity 120ms ease,
+		filter 120ms ease;
+}
+
+.tile:not([data-selected]) .image {
+	opacity: 0.45;
+	filter: grayscale(0.6);
+}
+
+@media (hover: hover) {
+	.tile:not([data-selected]):hover .image {
+		opacity: 0.75;
+	}
 }
 
 .tile[data-selected] {
 	outline-color: var(--mantine-primary-color-filled);
-	opacity: 1;
+	outline-offset: -2px;
 }
 
-.tile:focus-within {
-	outline-color: var(--mantine-primary-color-light-hover);
+/* Keyboard focus is visible on top of the selection outline */
+.tile:has(input:focus-visible) {
+	outline-color: var(--mantine-color-blue-filled);
+	outline-offset: 2px;
 }
 
 .checkbox {
 	position: absolute;
 	top: var(--mantine-spacing-xs);
 	left: var(--mantine-spacing-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tile,
+	.image {
+		transition: none;
+	}
 }
