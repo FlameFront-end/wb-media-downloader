@@ -13,7 +13,8 @@
 .footer {
 	position: sticky;
 	bottom: 0;
-	z-index: 1;
+	/* Above tile checkboxes (z-index 1 inside each photo) while the grid scrolls underneath */
+	z-index: var(--mantine-z-index-app);
 	margin-inline: calc(var(--mb-padding, var(--mantine-spacing-md)) * -1);
 	margin-bottom: calc(var(--mb-padding, var(--mantine-spacing-md)) * -1);
 	padding: var(--mantine-spacing-sm) var(--mb-padding, var(--mantine-spacing-md));
