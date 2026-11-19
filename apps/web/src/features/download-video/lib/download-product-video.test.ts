@@ -100,6 +100,17 @@ describe('downloadProductVideo', () => {
 		expect(transmuxers).toEqual({ created: 1, disposed: 1 })
 	})
 
+	it('falls back if two different segment URLs return the same decode times', async () => {
+		const repeated = segmentFixtures['0']
+		if (!repeated) {
+			throw new Error('Missing TS fixture')
+		}
+		server.use(http.get(`${BASE}/1440p/1.ts`, () => HttpResponse.arrayBuffer(Uint8Array.from(repeated).buffer)))
+
+		await expect(downloadProductVideo(video)).resolves.toMatchObject({ quality: '1080p' })
+		expect(transmuxers).toEqual({ created: 2, disposed: 2 })
+	})
+
 	it('disposes the muxer and falls back when 1440p exceeds the byte budget', async () => {
 		const [first, second] = [segmentFixtures['0'], segmentFixtures['1']]
 		if (!first || !second) {

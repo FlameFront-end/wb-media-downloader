@@ -7,8 +7,14 @@ interface TransmuxedSegment {
 	data: Uint8Array<ArrayBuffer>
 }
 
+type TimingEvent = 'videoSegmentTimingInfo' | 'audioSegmentTimingInfo'
+interface SegmentTiming {
+	start: { dts: number }
+}
+
 interface MuxTransmuxer {
-	on: (event: 'data', listener: (segment: TransmuxedSegment) => void) => void
+	on(event: 'data', listener: (segment: TransmuxedSegment) => void): void
+	on(event: TimingEvent, listener: (timing: SegmentTiming) => void): void
 	push: (bytes: Uint8Array) => void
 	flush: () => void
 	dispose: () => void
@@ -52,6 +58,18 @@ export async function createMp4Transmuxer(): Promise<Mp4Transmuxer> {
 
 	let initSegment: Uint8Array<ArrayBuffer> | null = null
 	const fragments: Uint8Array<ArrayBuffer>[] = []
+	let nonIncreasingTime = false
+
+	const timingEvents: TimingEvent[] = ['videoSegmentTimingInfo', 'audioSegmentTimingInfo']
+	for (const event of timingEvents) {
+		let previousStart: number | undefined
+		transmuxer.on(event, ({ start }) => {
+			if (previousStart !== undefined && start.dts <= previousStart) {
+				nonIncreasingTime = true
+			}
+			previousStart = start.dts
+		})
+	}
 
 	transmuxer.on('data', segment => {
 		initSegment ??= segment.initSegment
@@ -68,6 +86,11 @@ export async function createMp4Transmuxer(): Promise<Mp4Transmuxer> {
 			transmuxer.push(segment)
 			// Flush per segment: each source segment can be garbage-collected right away
 			transmuxer.flush()
+
+			// A CDN can repeat a TS segment even when the playlist has no discontinuity tag.
+			if (nonIncreasingTime) {
+				throw new UnsupportedPlaylistError('Segment decode times do not advance')
+			}
 
 			if (fragments.length === fragmentsBefore) {
 				throw new InvalidSegmentError('Segment contains no playable media')
