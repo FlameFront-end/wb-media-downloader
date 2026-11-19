@@ -7,11 +7,7 @@ export const DEFAULT_MANTINE_COLOR_SCHEME = 'auto' as const
 
 export const MANTINE_COLOR_SCHEME_STORAGE_KEY = 'mantine-color-scheme-value'
 
-export type MantineColorSchemePreference = 'light' | 'dark' | 'auto'
-
-export type MantineColorScheme = 'light' | 'dark'
-
-const VALID_PREFERENCES: readonly MantineColorSchemePreference[] = ['light', 'dark', 'auto']
+type MantineColorSchemePreference = 'light' | 'dark' | 'auto'
 
 /** Default Mantine dark theme tokens from default-css-variables.css */
 const MANTINE_DARK_BODY = '#242424'
@@ -38,38 +34,21 @@ html[data-mantine-color-scheme='light'] body {
 }
 `.trim()
 
-function resolveDefaultPreference(defaultColorScheme: MantineColorSchemePreference): MantineColorSchemePreference {
-	return VALID_PREFERENCES.includes(defaultColorScheme) ? defaultColorScheme : 'light'
-}
-
-export function resolveStoredColorSchemePreference(
-	stored: string | null,
-	defaultColorScheme: MantineColorSchemePreference
-): MantineColorSchemePreference {
-	if (stored === 'light' || stored === 'dark' || stored === 'auto') {
-		return stored
-	}
-
-	return resolveDefaultPreference(defaultColorScheme)
-}
-
-export function resolveMantineColorScheme(
-	preference: MantineColorSchemePreference,
-	prefersDark: boolean
-): MantineColorScheme {
-	return preference === 'auto' ? (prefersDark ? 'dark' : 'light') : preference
-}
-
 /** Inline script body for index.html — must run synchronously in <head> before first paint. */
 export function buildMantineColorSchemeInitScript(
 	defaultColorScheme: MantineColorSchemePreference = DEFAULT_MANTINE_COLOR_SCHEME
 ): string {
-	const fallback = resolveDefaultPreference(defaultColorScheme)
-
-	return `try {
-  var _colorScheme = window.localStorage.getItem("${MANTINE_COLOR_SCHEME_STORAGE_KEY}");
-  var colorScheme = _colorScheme === "light" || _colorScheme === "dark" || _colorScheme === "auto" ? _colorScheme : "${fallback}";
-  var computedColorScheme = colorScheme !== "auto" ? colorScheme : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  document.documentElement.setAttribute("data-mantine-color-scheme", computedColorScheme);
-} catch (e) {}`
+	return `(function () {
+var wbColorScheme = ${JSON.stringify(defaultColorScheme)};
+try {
+  var stored = window.localStorage.getItem("${MANTINE_COLOR_SCHEME_STORAGE_KEY}");
+  if (stored === "light" || stored === "dark" || stored === "auto") {
+    wbColorScheme = stored;
+  }
+} catch {}
+if (wbColorScheme === "auto") {
+  wbColorScheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+document.documentElement.setAttribute("data-mantine-color-scheme", wbColorScheme);
+})();`
 }
