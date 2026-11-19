@@ -81,16 +81,34 @@ describe('downloadProductVideo', () => {
 		await expect(downloadProductVideo(video)).rejects.toBeInstanceOf(VideoUnavailableError)
 	})
 
+	it('tries the next quality when a segment is missing and disposes the abandoned muxer', async () => {
+		server.use(http.get(`${BASE}/1440p/1.ts`, notFound))
+
+		await expect(downloadProductVideo(video)).resolves.toMatchObject({ quality: '1080p' })
+		expect(transmuxers).toEqual({ created: 2, disposed: 2 })
+	})
+
+	it('tries the next quality without muxing a discontinuous rendition', async () => {
+		server.use(
+			http.get(`${BASE}/1440p/index.m3u8`, () =>
+				HttpResponse.text('#EXTM3U\n#EXTINF:1,\n0.ts\n#EXT-X-DISCONTINUITY\n#EXTINF:1,\n1.ts\n#EXT-X-ENDLIST')
+			)
+		)
+
+		await expect(downloadProductVideo(video)).resolves.toMatchObject({ quality: '1080p' })
+		expect(transmuxers).toEqual({ created: 1, disposed: 1 })
+	})
+
 	it('does not fall back on server errors', async () => {
 		server.use(http.get(`${BASE}/1440p/index.m3u8`, () => new HttpResponse(null, { status: 500 })))
 
 		await expect(downloadProductVideo(video)).rejects.toBeInstanceOf(HttpError)
 	})
 
-	it('rejects unsupported playlists', async () => {
+	it('rejects unsupported playlists when every rendition is incompatible', async () => {
 		server.use(
 			http.get(
-				`${BASE}/1440p/index.m3u8`,
+				/\/hls\/\w+\/index\.m3u8$/,
 				() => new HttpResponse('#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="k"\n#EXTINF:1,\n1.ts\n#EXT-X-ENDLIST')
 			)
 		)
@@ -127,7 +145,7 @@ describe('downloadProductVideo', () => {
 	})
 
 	it('does not create a transmuxer when the playlist is unsupported', async () => {
-		server.use(http.get(`${BASE}/1440p/index.m3u8`, () => HttpResponse.text('not a playlist')))
+		server.use(http.get(/\/hls\/\w+\/index\.m3u8$/, () => HttpResponse.text('not a playlist')))
 
 		await expect(downloadProductVideo(video)).rejects.toBeInstanceOf(UnsupportedPlaylistError)
 		expect(transmuxers).toEqual({ created: 0, disposed: 0 })

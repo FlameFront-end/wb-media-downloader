@@ -53,13 +53,55 @@ test('downloads the video as a playable mp4', async ({ page }) => {
 	])
 
 	expect(download.suggestedFilename()).toBe(`wb-${KNOWN_NM}-video-1440p.mp4`)
-	const { boxes, trackCount, durationSeconds } = inspectMp4(await downloaded(download))
+	const bytes = await downloaded(download)
+	const { boxes, trackCount, durationSeconds } = inspectMp4(bytes)
 	// The fixture is H.264 + AAC: both tracks must survive the remux
 	expect(trackCount).toBe(2)
 	// Init segment, then a moof/mdat pair per track for every TS segment: a dropped segment changes the layout
 	const fragmentCount = Object.keys(segmentFixtures).length * trackCount
 	expect(boxes).toEqual(['ftyp', 'moov', ...Array.from({ length: fragmentCount }, () => ['moof', 'mdat']).flat()])
 	expect(durationSeconds).toBeCloseTo(PLAYLIST_DURATION_SECONDS, 1)
+
+	// Seek into the second segment and require a decoded frame in a real media element.
+	const frame = await page.evaluate(async data => {
+		const url = URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'video/mp4' }))
+		const video = document.createElement('video')
+		video.muted = true
+		const waitForMedia = (event: 'loadeddata' | 'seeked') =>
+			new Promise<void>((resolve, reject) => {
+				video.addEventListener(
+					event,
+					() => {
+						resolve()
+					},
+					{ once: true }
+				)
+				video.addEventListener(
+					'error',
+					() => {
+						reject(new Error(video.error?.message ?? 'Video could not be decoded'))
+					},
+					{ once: true }
+				)
+			})
+		try {
+			const loaded = waitForMedia('loadeddata')
+			video.src = url
+			await loaded
+			const seeked = waitForMedia('seeked')
+			video.currentTime = 1.5
+			await seeked
+			return {
+				width: video.videoWidth,
+				time: video.currentTime,
+				ready: video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+			}
+		} finally {
+			URL.revokeObjectURL(url)
+		}
+	}, Array.from(bytes))
+	expect(frame).toMatchObject({ time: 1.5, ready: true })
+	expect(frame.width).toBeGreaterThan(0)
 })
 
 test('shows incoming bytes without moving the controls and retries a stalled segment', async ({ page }) => {
@@ -156,5 +198,21 @@ test('reports a bad original and does not save an archive with HTML', async ({ p
 	await dialog.getByRole('button', { name: 'Скачать фото (3)' }).click()
 	await expect(dialog.getByRole('alert')).toContainText('CDN вернул повреждённое фото')
 	await expect(dialog.getByRole('alert')).toContainText(`wb-${KNOWN_NM}-02.webp`)
+	expect(downloads).toBe(0)
+})
+
+test('rejects a discontinuous video when no compatible quality is available', async ({ page }) => {
+	await page.route('**/index.m3u8', route =>
+		route.fulfill({
+			body: '#EXTM3U\n#EXTINF:1,\n0.ts\n#EXT-X-DISCONTINUITY\n#EXTINF:1,\n1.ts\n#EXT-X-ENDLIST'
+		})
+	)
+	const dialog = await openGallery(page)
+	let downloads = 0
+	page.on('download', () => {
+		downloads++
+	})
+	await dialog.getByRole('button', { name: 'Скачать видео' }).click()
+	await expect(dialog.getByRole('alert')).toContainText('Формат видео не поддерживается')
 	expect(downloads).toBe(0)
 })

@@ -52,6 +52,9 @@ describe('parseMediaPlaylist', () => {
 
 	it.each([
 		['not a playlist', '<html></html>'],
+		['discontinuous timeline', '#EXTM3U\n#EXTINF:1,\n1.ts\n#EXT-X-DISCONTINUITY\n#EXTINF:1,\n2.ts\n#EXT-X-ENDLIST'],
+		['malformed duration', '#EXTM3U\n#EXTINF:1.1.1,\n1.ts\n#EXT-X-ENDLIST'],
+		['missing final segment', '#EXTM3U\n#EXTINF:1,\n1.ts\n#EXTINF:2,\n#EXT-X-ENDLIST'],
 		['master playlist', '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\n1440p/index.m3u8\n#EXT-X-ENDLIST'],
 		['encrypted', '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="k"\n#EXTINF:1,\n1.ts\n#EXT-X-ENDLIST'],
 		['fmp4 segments', '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\n#EXTINF:1,\n1.m4s\n#EXT-X-ENDLIST'],

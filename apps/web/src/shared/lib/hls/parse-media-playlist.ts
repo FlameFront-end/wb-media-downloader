@@ -10,10 +10,15 @@ export interface MediaPlaylist {
 	durationSeconds: number
 }
 
-const EXTINF_PATTERN = /^#EXTINF:(\d+(?:\.\d+)?)/
+const EXTINF_PATTERN = /^#EXTINF:(\d+(?:\.\d+)?)(?:,.*)?$/
 
 function resolveSegmentUrl(uri: string, playlistUrl: string): string {
-	const url = new URL(uri, playlistUrl)
+	let url: URL
+	try {
+		url = new URL(uri, playlistUrl)
+	} catch {
+		throw new UnsupportedPlaylistError(`Invalid segment url: ${uri}`)
+	}
 
 	if (url.protocol !== 'https:' && url.protocol !== 'http:') {
 		throw new UnsupportedPlaylistError(`Unsupported segment url: ${uri}`)
@@ -46,8 +51,12 @@ export function parseMediaPlaylist(text: string, playlistUrl: string): MediaPlay
 			throw new UnsupportedPlaylistError('Master playlists are not supported')
 		}
 
-		if (line.startsWith('#EXT-X-KEY') && !line.includes('METHOD=NONE')) {
+		if (line.startsWith('#EXT-X-KEY:') && line !== '#EXT-X-KEY:METHOD=NONE') {
 			throw new UnsupportedPlaylistError('Encrypted playlists are not supported')
+		}
+
+		if (line === '#EXT-X-DISCONTINUITY') {
+			throw new UnsupportedPlaylistError('Timestamp discontinuities are not supported')
 		}
 
 		if (line.startsWith('#EXT-X-MAP') || line.startsWith('#EXT-X-BYTERANGE')) {
@@ -59,10 +68,12 @@ export function parseMediaPlaylist(text: string, playlistUrl: string): MediaPlay
 			continue
 		}
 
-		const extinf = EXTINF_PATTERN.exec(line)
-
-		if (extinf) {
-			pendingDuration = Number(extinf[1])
+		if (line.startsWith('#EXTINF:')) {
+			const duration = Number(EXTINF_PATTERN.exec(line)?.[1])
+			if (ended || pendingDuration !== null || !Number.isFinite(duration) || duration <= 0) {
+				throw new UnsupportedPlaylistError('Invalid segment duration or missing segment')
+			}
+			pendingDuration = duration
 			continue
 		}
 
@@ -70,7 +81,7 @@ export function parseMediaPlaylist(text: string, playlistUrl: string): MediaPlay
 			continue
 		}
 
-		if (pendingDuration === null) {
+		if (ended || pendingDuration === null) {
 			throw new UnsupportedPlaylistError(`Segment without #EXTINF: ${line}`)
 		}
 
@@ -82,8 +93,8 @@ export function parseMediaPlaylist(text: string, playlistUrl: string): MediaPlay
 		throw new UnsupportedPlaylistError('Live playlists are not supported')
 	}
 
-	if (segments.length === 0) {
-		throw new UnsupportedPlaylistError('Playlist has no segments')
+	if (segments.length === 0 || pendingDuration !== null) {
+		throw new UnsupportedPlaylistError('Playlist has missing segments')
 	}
 
 	return {

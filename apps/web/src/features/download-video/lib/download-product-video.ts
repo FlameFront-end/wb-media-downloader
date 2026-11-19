@@ -1,6 +1,11 @@
 import type { ProductVideo, ProductVideoSource } from '@/entities/product'
 import { fetchBytes, fetchText, HttpError, isRetryableError, type VideoQuality } from '@/shared/api'
-import { createMp4Transmuxer, parseMediaPlaylist, type DownloadTaskContext, type MediaPlaylist } from '@/shared/lib'
+import {
+	createMp4Transmuxer,
+	parseMediaPlaylist,
+	type DownloadTaskContext,
+	UnsupportedPlaylistError
+} from '@/shared/lib'
 
 export class VideoUnavailableError extends Error {
 	override readonly name = 'VideoUnavailableError'
@@ -67,49 +72,23 @@ interface DownloadedVideo {
 	file: Blob
 }
 
-/** Picks the best quality the CDN actually has: a missing playlist (404) falls back to the next one. */
-async function resolvePlaylist(
-	sources: readonly ProductVideoSource[],
-	signal?: AbortSignal
-): Promise<{ quality: VideoQuality; playlist: MediaPlaylist }> {
-	for (const source of sources) {
-		let text: string
-		const timeout = AbortSignal.timeout(IDLE_TIMEOUT_MS)
-
-		try {
-			text = await fetchText(source.playlistUrl, {
-				signal: signal ? AbortSignal.any([signal, timeout]) : timeout
-			})
-		} catch (error) {
-			signal?.throwIfAborted()
-			timeout.throwIfAborted()
-			if (error instanceof HttpError && error.status === 404) {
-				continue
-			}
-
-			throw error
-		}
-
-		return { quality: source.quality, playlist: parseMediaPlaylist(text, source.playlistUrl) }
+async function downloadRendition(
+	source: ProductVideoSource,
+	{ signal, onProgress }: DownloadVideoOptions
+): Promise<DownloadedVideo> {
+	const timeout = AbortSignal.timeout(IDLE_TIMEOUT_MS)
+	let text: string
+	try {
+		text = await fetchText(source.playlistUrl, {
+			signal: signal ? AbortSignal.any([signal, timeout]) : timeout
+		})
+	} catch (error) {
+		signal?.throwIfAborted()
+		timeout.throwIfAborted()
+		throw error
 	}
 
-	throw new VideoUnavailableError('No video playlist is available on CDN')
-}
-
-/**
- * HLS → MP4 in the browser: segments are downloaded one by one and remuxed
- * right away, so only one source segment is held in memory at a time.
- * Every segment must yield media (`InvalidSegmentError` otherwise): a file is
- * saved only when the whole playlist was remuxed.
- */
-export async function downloadProductVideo(
-	video: ProductVideo,
-	{ signal, onProgress }: DownloadVideoOptions = {}
-): Promise<DownloadedVideo> {
-	signal?.throwIfAborted()
-
-	// Playlist first: when there is no video, no transmuxer is created at all
-	const { quality, playlist } = await resolvePlaylist(video.sources, signal)
+	const playlist = parseMediaPlaylist(text, source.playlistUrl)
 	const total = playlist.segments.length
 	const transmuxer = await createMp4Transmuxer()
 
@@ -126,8 +105,31 @@ export async function downloadProductVideo(
 
 		signal?.throwIfAborted()
 
-		return { quality, file: transmuxer.finish(playlist.durationSeconds) }
+		return { quality: source.quality, file: transmuxer.finish(playlist.durationSeconds) }
 	} finally {
 		transmuxer.dispose()
 	}
+}
+
+/** Saves the highest usable rendition as fMP4. Each attempt owns and disposes its muxer. */
+export async function downloadProductVideo(
+	video: ProductVideo,
+	options: DownloadVideoOptions = {}
+): Promise<DownloadedVideo> {
+	let unsupported: UnsupportedPlaylistError | undefined
+	for (const source of video.sources) {
+		options.signal?.throwIfAborted()
+		try {
+			return await downloadRendition(source, options)
+		} catch (error) {
+			options.signal?.throwIfAborted()
+			if (error instanceof UnsupportedPlaylistError) {
+				unsupported ??= error
+			} else if (!(error instanceof HttpError && error.status === 404)) {
+				throw error
+			}
+		}
+	}
+
+	throw unsupported ?? new VideoUnavailableError('No complete video rendition is available on CDN')
 }
