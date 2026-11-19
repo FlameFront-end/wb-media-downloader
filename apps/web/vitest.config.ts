@@ -15,7 +15,7 @@ export default mergeConfig(
 				provider: 'v8',
 				include: ['src/**/*.{ts,tsx}'],
 				exclude: ['src/**/*.test.{ts,tsx}', 'src/main.tsx'],
-				reporter: ['text', 'html', 'lcov']
+				reporter: ['text', 'html', 'lcov', 'json-summary']
 			}
 		}
 	})
