@@ -60,6 +60,12 @@ describe('getProduct', () => {
 		await expect(getProduct(KNOWN_NM, upstreams)).rejects.toBeInstanceOf(InvalidResponseError)
 	})
 
+	it('rejects an unbounded photo count before building the gallery', async () => {
+		server.use(http.get(CARD_URL, () => HttpResponse.json({ ...cardFixture, media: { photo_count: 100_000 } })))
+
+		await expect(getProduct(KNOWN_NM, upstreams)).rejects.toBeInstanceOf(InvalidResponseError)
+	})
+
 	it('throws InvalidResponseError when card belongs to another product', async () => {
 		server.use(http.get(CARD_URL, () => HttpResponse.json({ ...cardFixture, nm_id: 1 })))
 

@@ -2,10 +2,11 @@ import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ProductVideo } from '@/entities/product'
-import { HttpError, VIDEO_QUALITIES } from '@/shared/api'
+import { HttpError, ResponseTooLargeError, VIDEO_QUALITIES } from '@/shared/api'
 import type * as sharedLib from '@/shared/lib'
 import { InvalidSegmentError, UnsupportedPlaylistError } from '@/shared/lib'
 
+import { segmentFixtures } from '../../../../test/msw/fixtures/hls'
 import { server } from '../../../../test/msw/server'
 
 import { downloadProductVideo, VideoUnavailableError } from './download-product-video'
@@ -97,6 +98,28 @@ describe('downloadProductVideo', () => {
 
 		await expect(downloadProductVideo(video)).resolves.toMatchObject({ quality: '1080p' })
 		expect(transmuxers).toEqual({ created: 1, disposed: 1 })
+	})
+
+	it('disposes the muxer and falls back when 1440p exceeds the byte budget', async () => {
+		const [first, second] = [segmentFixtures['0'], segmentFixtures['1']]
+		if (!first || !second) {
+			throw new Error('Missing TS fixture')
+		}
+		server.use(
+			http.get(`${BASE}/1440p/1.ts`, () => HttpResponse.arrayBuffer(new Uint8Array(second.byteLength + 1).buffer))
+		)
+
+		await expect(
+			downloadProductVideo(video, { maxTotalBytes: first.byteLength + second.byteLength })
+		).resolves.toMatchObject({
+			quality: '1080p'
+		})
+		expect(transmuxers).toEqual({ created: 2, disposed: 2 })
+	})
+
+	it('reports the limit if all renditions exceed the budget', async () => {
+		await expect(downloadProductVideo(video, { maxTotalBytes: 8 })).rejects.toBeInstanceOf(ResponseTooLargeError)
+		expect(transmuxers).toEqual({ created: 3, disposed: 3 })
 	})
 
 	it('does not fall back on server errors', async () => {

@@ -4,7 +4,7 @@ import * as z from 'zod/mini'
 
 import { server } from '../../../test/msw/server'
 
-import { HttpError, InvalidResponseError, isRetryableError } from './errors'
+import { HttpError, InvalidResponseError, isRetryableError, ResponseTooLargeError } from './errors'
 import { fetchBytes, fetchJson } from './http'
 
 const URL = 'https://api.example.test/item'
@@ -147,5 +147,20 @@ describe('request timeout', () => {
 		} finally {
 			vi.useRealTimers()
 		}
+	})
+})
+
+describe('binary size limit', () => {
+	it('reads a response at the limit', async () => {
+		vi.stubGlobal('fetch', () => Promise.resolve(new Response(new Uint8Array([1, 2, 3]))))
+		await expect(fetchBytes(URL, { maxBytes: 3 })).resolves.toEqual(new Uint8Array([1, 2, 3]))
+	})
+
+	it.each([
+		['declared', { 'Content-Length': '4' }],
+		['streamed', {}]
+	])('rejects %s bytes above the limit', async (_, headers) => {
+		vi.stubGlobal('fetch', () => Promise.resolve(new Response(new Uint8Array([1, 2, 3, 4]), { headers })))
+		await expect(fetchBytes(URL, { maxBytes: 3 })).rejects.toBeInstanceOf(ResponseTooLargeError)
 	})
 })

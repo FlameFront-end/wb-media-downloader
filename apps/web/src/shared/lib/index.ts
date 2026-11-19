@@ -8,6 +8,7 @@ export {
 	type DownloadTaskContext,
 	type FileDownload
 } from './download/use-file-download'
+export { MAX_DOWNLOAD_BYTES, MAX_MEDIA_RESPONSE_BYTES } from './download/download-limits'
 export { isAbortError } from './errors/is-abort-error'
 export { InvalidSegmentError, UnsupportedPlaylistError } from './hls/errors'
 export { createMp4Transmuxer } from './hls/mp4-transmuxer'

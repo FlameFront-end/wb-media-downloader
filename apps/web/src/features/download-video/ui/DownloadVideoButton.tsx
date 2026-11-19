@@ -1,5 +1,5 @@
 import type { Product } from '@/entities/product'
-import { isTimeoutError } from '@/shared/api'
+import { isTimeoutError, ResponseTooLargeError } from '@/shared/api'
 import { InvalidSegmentError, UnsupportedPlaylistError } from '@/shared/lib'
 import { DownloadControl } from '@/shared/ui'
 
@@ -12,6 +12,10 @@ interface DownloadVideoButtonProps {
 }
 
 function formatError(error: Error): string {
+	if (error instanceof ResponseTooLargeError) {
+		return 'Видео слишком большое для скачивания в браузере.'
+	}
+
 	if (isTimeoutError(error)) {
 		return 'Сервер видео долго не отвечает. Попробуйте ещё раз.'
 	}

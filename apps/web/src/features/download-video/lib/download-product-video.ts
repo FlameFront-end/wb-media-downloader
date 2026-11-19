@@ -1,7 +1,16 @@
 import type { ProductVideo, ProductVideoSource } from '@/entities/product'
-import { fetchBytes, fetchText, HttpError, isRetryableError, type VideoQuality } from '@/shared/api'
+import {
+	fetchBytes,
+	fetchText,
+	HttpError,
+	isRetryableError,
+	ResponseTooLargeError,
+	type VideoQuality
+} from '@/shared/api'
 import {
 	createMp4Transmuxer,
+	MAX_DOWNLOAD_BYTES,
+	MAX_MEDIA_RESPONSE_BYTES,
 	parseMediaPlaylist,
 	type DownloadTaskContext,
 	UnsupportedPlaylistError
@@ -14,6 +23,7 @@ export class VideoUnavailableError extends Error {
 interface DownloadVideoOptions {
 	signal?: AbortSignal
 	onProgress?: DownloadTaskContext['onProgress']
+	maxTotalBytes?: number
 }
 
 const IDLE_TIMEOUT_MS = 12_000
@@ -22,6 +32,7 @@ const PROGRESS_STEP_BYTES = 64 * 1024
 async function fetchSegment(
 	url: string,
 	signal: AbortSignal | undefined,
+	maxBytes: number,
 	onBytes: (received: number) => void
 ): Promise<Uint8Array<ArrayBuffer>> {
 	for (let attempt = 0; ; attempt++) {
@@ -34,6 +45,7 @@ async function fetchSegment(
 			return await fetchBytes(url, {
 				signal,
 				timeoutMs: IDLE_TIMEOUT_MS,
+				maxBytes,
 				onBytes(received) {
 					if (received - reported >= PROGRESS_STEP_BYTES) {
 						reported = received
@@ -57,7 +69,7 @@ interface DownloadedVideo {
 
 async function downloadRendition(
 	source: ProductVideoSource,
-	{ signal, onProgress }: DownloadVideoOptions
+	{ signal, onProgress, maxTotalBytes = MAX_DOWNLOAD_BYTES }: DownloadVideoOptions
 ): Promise<DownloadedVideo> {
 	const text = await fetchText(source.playlistUrl, { signal, timeoutMs: IDLE_TIMEOUT_MS })
 
@@ -67,11 +79,18 @@ async function downloadRendition(
 
 	try {
 		onProgress?.(0, total)
+		let remaining = maxTotalBytes
 
 		for (const [index, segment] of playlist.segments.entries()) {
-			const bytes = await fetchSegment(segment.url, signal, received => {
-				onProgress?.(index, total, received)
-			})
+			const bytes = await fetchSegment(
+				segment.url,
+				signal,
+				Math.min(MAX_MEDIA_RESPONSE_BYTES, remaining),
+				received => {
+					onProgress?.(index, total, received)
+				}
+			)
+			remaining -= bytes.byteLength
 			transmuxer.push(bytes)
 			onProgress?.(index + 1, total)
 		}
@@ -89,20 +108,22 @@ export async function downloadProductVideo(
 	video: ProductVideo,
 	options: DownloadVideoOptions = {}
 ): Promise<DownloadedVideo> {
-	let unsupported: UnsupportedPlaylistError | undefined
+	let unusable: UnsupportedPlaylistError | ResponseTooLargeError | undefined
 	for (const source of video.sources) {
 		options.signal?.throwIfAborted()
 		try {
 			return await downloadRendition(source, options)
 		} catch (error) {
 			options.signal?.throwIfAborted()
-			if (error instanceof UnsupportedPlaylistError) {
-				unsupported ??= error
+			if (error instanceof ResponseTooLargeError) {
+				unusable = error
+			} else if (error instanceof UnsupportedPlaylistError) {
+				unusable ??= error
 			} else if (!(error instanceof HttpError && error.status === 404)) {
 				throw error
 			}
 		}
 	}
 
-	throw unsupported ?? new VideoUnavailableError('No complete video rendition is available on CDN')
+	throw unusable ?? new VideoUnavailableError('No complete video rendition is available on CDN')
 }

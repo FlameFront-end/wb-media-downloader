@@ -22,6 +22,14 @@ export class InvalidResponseError extends Error {
 	}
 }
 
+export class ResponseTooLargeError extends Error {
+	override readonly name = 'ResponseTooLargeError'
+
+	constructor(limitBytes: number) {
+		super(`Transfer exceeds the limit of ${limitBytes} bytes`)
+	}
+}
+
 export function isTimeoutError(error: unknown): boolean {
 	return error instanceof DOMException && error.name === 'TimeoutError'
 }

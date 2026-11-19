@@ -1,4 +1,4 @@
-export { HttpError, InvalidResponseError, isRetryableError, isTimeoutError } from './errors'
+export { HttpError, InvalidResponseError, isRetryableError, isTimeoutError, ResponseTooLargeError } from './errors'
 export { fetchBytes, fetchJson, fetchText } from './http'
 export {
 	buildCardInfoUrl,

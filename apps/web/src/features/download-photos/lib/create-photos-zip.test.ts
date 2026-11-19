@@ -2,7 +2,7 @@ import { unzipSync } from 'fflate'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
-import { InvalidResponseError } from '@/shared/api'
+import { InvalidResponseError, ResponseTooLargeError } from '@/shared/api'
 
 import { blobBytes } from '../../../../test/downloads'
 import { photoBytes } from '../../../../test/msw/fixtures/photos'
@@ -100,6 +100,12 @@ describe('createPhotosZip', () => {
 		expect(error).toMatchObject({ filename: '1.webp' })
 		expect(error instanceof PhotoDownloadError && error.cause instanceof InvalidResponseError).toBe(true)
 		expect(attempts).toBe(1)
+	})
+
+	it('enforces the total budget even when individual originals are valid', async () => {
+		await expect(createPhotosZip(entries, { maxTotalBytes: photoBytes(1).byteLength })).rejects.toBeInstanceOf(
+			ResponseTooLargeError
+		)
 	})
 
 	it('does not retry client errors', async () => {

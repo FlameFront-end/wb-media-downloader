@@ -1,5 +1,5 @@
-import { fetchBytes, InvalidResponseError, isRetryableError } from '@/shared/api'
-import { isAbortError, mapWithConcurrency } from '@/shared/lib'
+import { fetchBytes, InvalidResponseError, isRetryableError, ResponseTooLargeError } from '@/shared/api'
+import { isAbortError, mapWithConcurrency, MAX_DOWNLOAD_BYTES, MAX_MEDIA_RESPONSE_BYTES } from '@/shared/lib'
 
 export interface ZipEntry {
 	url: string
@@ -23,6 +23,7 @@ interface CreatePhotosZipOptions {
 	concurrency?: number
 	/** Extra attempts per photo on transient errors (network, 5xx, 429). */
 	retries?: number
+	maxTotalBytes?: number
 }
 
 function isWebp(bytes: Uint8Array): boolean {
@@ -45,7 +46,7 @@ function isWebp(bytes: Uint8Array): boolean {
 async function fetchWithRetry(url: string, retries: number, signal: AbortSignal): Promise<Uint8Array> {
 	for (let attempt = 0; ; attempt++) {
 		try {
-			return await fetchBytes(url, { signal })
+			return await fetchBytes(url, { signal, maxBytes: MAX_MEDIA_RESPONSE_BYTES })
 		} catch (error) {
 			if (attempt >= retries || signal.aborted || !isRetryableError(error)) {
 				throw error
@@ -61,7 +62,13 @@ async function fetchWithRetry(url: string, retries: number, signal: AbortSignal)
  */
 export async function createPhotosZip(
 	entries: readonly ZipEntry[],
-	{ signal, onProgress, concurrency = 4, retries = 1 }: CreatePhotosZipOptions = {}
+	{
+		signal,
+		onProgress,
+		concurrency = 4,
+		retries = 1,
+		maxTotalBytes = MAX_DOWNLOAD_BYTES
+	}: CreatePhotosZipOptions = {}
 ): Promise<Blob> {
 	signal?.throwIfAborted()
 
@@ -79,6 +86,7 @@ export async function createPhotosZip(
 	})
 
 	let done = 0
+	let totalBytes = 0
 	onProgress?.(done, entries.length)
 
 	try {
@@ -95,6 +103,11 @@ export async function createPhotosZip(
 					}
 				} catch (error) {
 					throw isAbortError(error) ? error : new PhotoDownloadError(entry.filename, error)
+				}
+
+				totalBytes += bytes.byteLength
+				if (totalBytes > maxTotalBytes) {
+					throw new ResponseTooLargeError(maxTotalBytes)
 				}
 
 				// add + final push run synchronously, so parallel downloads never interleave entries

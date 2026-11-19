@@ -1,6 +1,6 @@
 import * as z from 'zod/mini'
 
-import { HttpError, InvalidResponseError } from './errors'
+import { HttpError, InvalidResponseError, ResponseTooLargeError } from './errors'
 
 const DEFAULT_TIMEOUT_MS = 15_000
 
@@ -79,18 +79,32 @@ async function fetchOk(url: string, init: RequestInit): Promise<Response> {
 
 interface ByteRequestOptions extends RequestOptions {
 	onBytes?: (received: number) => void
+	maxBytes?: number
 }
 
 /** The binary timeout measures inactivity rather than the whole transfer. */
 export function fetchBytes(
 	url: string,
-	{ onBytes, ...options }: ByteRequestOptions = {}
+	{ onBytes, maxBytes, ...options }: ByteRequestOptions = {}
 ): Promise<Uint8Array<ArrayBuffer>> {
 	return withRequestTimeout(url, options, async (signal, onActivity) => {
 		const response = await fetchOk(url, { signal })
+		const checkSize = (bytes: number) => {
+			if (maxBytes !== undefined && bytes > maxBytes) {
+				throw new ResponseTooLargeError(maxBytes)
+			}
+		}
 		onActivity()
+		try {
+			checkSize(Number(response.headers.get('content-length')))
+		} catch (error) {
+			void response.body?.cancel().catch(() => undefined)
+			throw error
+		}
 		if (!response.body) {
-			return new Uint8Array(await response.arrayBuffer())
+			const bytes = new Uint8Array(await response.arrayBuffer())
+			checkSize(bytes.byteLength)
+			return bytes
 		}
 
 		let received = 0
@@ -99,6 +113,7 @@ export function fetchBytes(
 				transform(chunk, controller) {
 					onActivity()
 					received += chunk.byteLength
+					checkSize(received)
 					onBytes?.(received)
 					controller.enqueue(chunk)
 				}

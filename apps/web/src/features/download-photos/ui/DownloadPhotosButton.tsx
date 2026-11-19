@@ -1,5 +1,5 @@
 import type { Product } from '@/entities/product'
-import { InvalidResponseError, isTimeoutError } from '@/shared/api'
+import { InvalidResponseError, isTimeoutError, ResponseTooLargeError } from '@/shared/api'
 import { DownloadControl } from '@/shared/ui'
 
 import { PhotoDownloadError } from '../lib/create-photos-zip'
@@ -12,6 +12,13 @@ interface DownloadPhotosButtonProps {
 }
 
 function formatError(error: Error): string {
+	if (error instanceof ResponseTooLargeError) {
+		return 'Архив слишком большой. Выберите меньше фотографий.'
+	}
+	if (error instanceof PhotoDownloadError && error.cause instanceof ResponseTooLargeError) {
+		return `Фото ${error.filename} слишком большое для скачивания в браузере.`
+	}
+
 	if (error instanceof PhotoDownloadError && isTimeoutError(error.cause)) {
 		return `Фото ${error.filename} не загрузилось вовремя. Попробуйте ещё раз.`
 	}
