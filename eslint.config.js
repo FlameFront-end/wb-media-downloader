@@ -8,7 +8,7 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig([
-	globalIgnores(['**/dist', '**/coverage', '**/node_modules', '**/test-results', '**/playwright-report']),
+	globalIgnores(['.plan/**', '**/dist', '**/coverage', '**/node_modules', '**/test-results', '**/playwright-report']),
 
 	{
 		name: 'project/typescript',
