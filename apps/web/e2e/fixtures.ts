@@ -1,18 +1,39 @@
 import { expect, test as base, type Page } from '@playwright/test'
 
+import { photoBytes, playlistFixture, segmentFixtures } from '../test/msw/fixtures/hls.ts'
 import { cardFixture, KNOWN_NM, UPSTREAMS_URL, upstreamsFixture } from '../test/msw/fixtures/wb.ts'
 
-export { cardFixture, KNOWN_NM }
+export { cardFixture, KNOWN_NM, photoBytes }
 
 const CORS = { 'Access-Control-Allow-Origin': '*' }
 
-/** Fake WB CDN: tests never hit the network. */
+const CARD_URL = new RegExp(`/${KNOWN_NM}/info/ru/card\\.json$`)
+const PHOTO_URL = /\/(\d+)\/images\/big\/(\d+)\.webp$/
+const PLAYLIST_URL = /\/hls\/\w+\/index\.m3u8$/
+const SEGMENT_URL = /\/hls\/\w+\/(\d+)\.ts$/
+
+/** Fake WB CDN, same data as the MSW handlers: tests never hit the network. */
 async function mockWbCdn(page: Page): Promise<void> {
+	// Registered first, so it only catches what the specific routes below do not
 	await page.route(/^https:\/\/[^/]+\.wbbasket\.ru\//, route => route.fulfill({ status: 404, headers: CORS }))
 	await page.route(UPSTREAMS_URL, route => route.fulfill({ json: upstreamsFixture, headers: CORS }))
-	await page.route(new RegExp(`/${KNOWN_NM}/info/ru/card\\.json$`), route =>
-		route.fulfill({ json: cardFixture, headers: CORS })
+	await page.route(CARD_URL, route => route.fulfill({ json: cardFixture, headers: CORS }))
+	await page.route(PHOTO_URL, route => {
+		const [, nm, index] = PHOTO_URL.exec(route.request().url()) ?? []
+		const body = Buffer.from(photoBytes(Number(nm), Number(index)))
+
+		return route.fulfill({ body, contentType: 'image/webp', headers: CORS })
+	})
+	await page.route(PLAYLIST_URL, route =>
+		route.fulfill({ body: playlistFixture, contentType: 'application/vnd.apple.mpegurl', headers: CORS })
 	)
+	await page.route(SEGMENT_URL, route => {
+		const segment = segmentFixtures[SEGMENT_URL.exec(route.request().url())?.[1] ?? '']
+
+		return segment
+			? route.fulfill({ body: Buffer.from(segment), contentType: 'video/mp2t', headers: CORS })
+			: route.fulfill({ status: 404, headers: CORS })
+	})
 }
 
 interface Fixtures {
