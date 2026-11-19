@@ -25,7 +25,14 @@ function RetryButton({ loading, onRetry }: RetryButtonProps) {
 }
 
 export function ProductMediaContent({ productId, active }: ProductMediaContentProps) {
-	const { data: product, error, isPending, isFetching, refetch } = useQuery(productQueries.detail(productId))
+	const {
+		data: product,
+		error,
+		isPending,
+		isFetching,
+		isPaused,
+		refetch
+	} = useQuery(productQueries.detail(productId))
 
 	const retry = () => {
 		void refetch()
@@ -35,6 +42,11 @@ export function ProductMediaContent({ productId, active }: ProductMediaContentPr
 	if (product || isPending) {
 		return (
 			<Stack gap='md' className={classes.fill} inert={!active}>
+				{!product && isPaused && (
+					<Alert role='status' color='blue' title='Нет сети'>
+						Загрузка карточки продолжится после подключения.
+					</Alert>
+				)}
 				{product && error && (
 					<Alert color='red' title='Не удалось обновить карточку'>
 						<Stack gap='xs' align='flex-start'>

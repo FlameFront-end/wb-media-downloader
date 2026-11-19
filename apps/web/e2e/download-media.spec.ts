@@ -103,3 +103,22 @@ test('shows incoming bytes and retries a stalled segment', async ({ page }) => {
 	const [download] = await Promise.all([page.waitForEvent('download'), page.clock.fastForward(12_100)])
 	expect(inspectMp4(await downloaded(download)).durationSeconds).toBeCloseTo(PLAYLIST_DURATION_SECONDS, 1)
 })
+
+test('explains a missing preview and still lets the user download the original', async ({ page }) => {
+	// The CDN fixture serves the originals and responds with 404 for preview requests.
+	const dialog = await openGallery(page)
+	const tile = dialog.locator('label').filter({ has: page.getByRole('checkbox', { name: 'Фото 1', exact: true }) })
+	await expect(tile.getByText('Превью недоступно')).toBeVisible()
+
+	const all = dialog.getByRole('checkbox', { name: 'Выбрать все' })
+	await all.uncheck()
+	await tile.getByRole('checkbox').check()
+
+	const [download] = await Promise.all([
+		page.waitForEvent('download'),
+		dialog.getByRole('button', { name: 'Скачать фото (1)' }).click()
+	])
+	expect(unzipSync(await downloaded(download))).toEqual({
+		[`wb-${KNOWN_NM}-01.webp`]: photoBytes(KNOWN_NM, 1)
+	})
+})

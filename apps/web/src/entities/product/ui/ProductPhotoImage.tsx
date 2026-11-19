@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { AspectRatio, Image } from '@mantine/core'
+import { AspectRatio, Image, Text } from '@mantine/core'
 
 import type { ProductPhoto } from '../model/types'
 
@@ -22,26 +22,37 @@ const TILE_SIZES = '(min-width: 48em) 180px, (min-width: 36em) 30vw, 45vw'
  * so a 1x screen never downloads the larger preview; originals go to the archive only.
  */
 export function ProductPhotoImage({ photo, productName }: ProductPhotoImageProps) {
-	// Fade in once decoded instead of painting top to bottom; a failed preview keeps the placeholder
-	const [loaded, setLoaded] = useState(false)
+	// Keep the tile dimensions stable across loading and failure.
+	const [status, setStatus] = useState<'loading' | 'loaded' | 'failed'>('loading')
 
 	return (
 		<AspectRatio ratio={3 / 4} className={classes.frame}>
-			<Image
-				className={classes.image}
-				data-loaded={loaded || undefined}
-				onLoad={() => {
-					setLoaded(true)
-				}}
-				src={photo.previewUrl}
-				srcSet={`${photo.thumbnailUrl} 246w, ${photo.previewUrl} 516w`}
-				sizes={TILE_SIZES}
-				alt={`${productName} — фото ${photo.index}`}
-				loading='lazy'
-				decoding='async'
-				radius='sm'
-				fit='cover'
-			/>
+			{status === 'failed' ? (
+				<div className={classes.unavailable}>
+					<Text size='xs' ta='center'>
+						Превью недоступно
+					</Text>
+				</div>
+			) : (
+				<Image
+					className={classes.image}
+					data-loaded={status === 'loaded' || undefined}
+					onLoad={() => {
+						setStatus('loaded')
+					}}
+					onError={() => {
+						setStatus('failed')
+					}}
+					src={photo.previewUrl}
+					srcSet={`${photo.thumbnailUrl} 246w, ${photo.previewUrl} 516w`}
+					sizes={TILE_SIZES}
+					alt={`${productName} — фото ${photo.index}`}
+					loading='lazy'
+					decoding='async'
+					radius='sm'
+					fit='cover'
+				/>
+			)}
 		</AspectRatio>
 	)
 }

@@ -50,12 +50,12 @@
 }
 
 /* Dim only the photo: the checkbox keeps full contrast */
-.tile:not([data-selected]) .image {
+.tile:not([data-selected]) .image:has(img) {
 	opacity: 0.45;
 }
 
 @media (hover: hover), (hover: none) and (pointer: fine) {
-	.tile:not([data-selected]):hover .image {
+	.tile:not([data-selected]):hover .image:has(img) {
 		opacity: 0.75;
 	}
 }

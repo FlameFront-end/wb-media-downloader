@@ -200,3 +200,20 @@ test('closing the modal keeps the gallery in place during the exit transition', 
 	expect(galleryDuringExit).toBe(true)
 	await expect(dialog).toHaveCount(0)
 })
+
+test('explains why a gallery is paused offline and resumes on reconnect', async ({ page, context }) => {
+	await page.goto('/')
+	await page.getByLabel('Артикул').focus()
+	await page.waitForFunction(() =>
+		performance.getEntriesByType('resource').some(entry => /product-media-modal-.*\.js$/.test(entry.name))
+	)
+	await context.setOffline(true)
+
+	await submitArticle(page)
+	const dialog = page.getByRole('dialog')
+	await expect(dialog.getByRole('status')).toContainText('Загрузка карточки продолжится после подключения.')
+	await expect(dialog.getByTestId('gallery-tile-skeleton').first()).toBeVisible()
+	await context.setOffline(false)
+	await expect(dialog.getByRole('heading', { name: cardFixture.imt_name })).toBeVisible()
+	await expect(dialog.getByRole('status')).toHaveCount(0)
+})
