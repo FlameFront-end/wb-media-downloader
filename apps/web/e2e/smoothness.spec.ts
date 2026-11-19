@@ -38,21 +38,48 @@ async function holdRoute(page: Page, url: string | RegExp) {
 }
 
 test.describe('modal transition', () => {
-	test('opens with a short transition', async ({ page }) => {
-		await page.goto('/')
-		await submitArticle(page)
+	for (const width of [390, 1280]) {
+		test(`animates on the first opening at ${width}px`, async ({ page }) => {
+			await page.setViewportSize({ width, height: 800 })
+			await page.goto('/')
+			await page.evaluate(() => {
+				document.addEventListener('transitionrun', event => {
+					if (event.propertyName === 'transform' && event.target instanceof HTMLElement) {
+						if (event.target.getAttribute('role') === 'dialog') {
+							event.target.dataset.entranceAnimated = 'true'
+						}
+					}
+				})
+			})
+			await submitArticle(page)
 
-		await expect(page.getByRole('dialog')).toHaveCSS('transition-duration', '0.2s')
-	})
+			const dialog = page.getByRole('dialog')
+			await expect(dialog).toHaveAttribute('data-entrance-animated', 'true')
+			await expect(dialog).toHaveCSS('opacity', '1')
+		})
+	}
 
 	test.describe('with reduced motion', () => {
 		test.use({ reducedMotion: 'reduce' })
 
-		test('opens instantly', async ({ page }) => {
+		test('disables motion in the modal, skeleton and download progress', async ({ page }) => {
+			const releaseCard = await holdRoute(page, CARD_URL)
+			const releasePhotos = await holdRoute(page, '**/images/big/**')
 			await page.goto('/')
 			await submitArticle(page)
 
-			await expect(page.getByRole('dialog')).toHaveCSS('transition-duration', '0s')
+			const dialog = page.getByRole('dialog')
+			const tile = dialog.getByTestId('gallery-tile-skeleton')
+			await expect(dialog).toHaveCSS('transition-duration', '0s')
+			await expect(tile).toBeVisible()
+			expect(await tile.evaluate(node => node.getAnimations({ subtree: true }).length)).toBe(0)
+
+			releaseCard()
+			await dialog.getByRole('button', { name: 'Скачать фото (3)' }).click()
+			const progress = dialog.getByRole('progressbar', { name: 'Прогресс скачивания фото' })
+			await expect(progress).toHaveCSS('transition-duration', '0s')
+			await dialog.getByRole('button', { name: 'Отмена' }).click()
+			releasePhotos()
 		})
 	})
 })
@@ -136,15 +163,43 @@ test.describe('focus returns where the modal was opened from', () => {
 	})
 })
 
-test('a finished download says the file was saved', async ({ page }) => {
+test('fades from download progress to the saved message in the same space', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 780 })
+	const releasePhotos = await holdRoute(page, '**/images/big/**')
 	await page.goto('/')
 	await submitArticle(page)
 	const dialog = page.getByRole('dialog')
+	await dialog.getByRole('button', { name: 'Скачать фото (3)' }).click()
+	await expect(dialog.getByText('Загружено 0 из 3', { exact: true })).toBeVisible()
+	await expect(dialog).toHaveCSS('opacity', '1')
+	await animationsSettled(page)
+	await page.evaluate(() => {
+		document.addEventListener('animationstart', event => {
+			const saved = event.target
+			if (!(saved instanceof HTMLElement) || saved.getAttribute('role') !== 'status') {
+				return
+			}
 
-	await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: 'Скачать фото (3)' }).click()])
+			const incoming = saved.parentElement
+			const progress = incoming?.parentElement?.querySelector('[role=progressbar]')
+			const outgoing = progress?.closest('[inert]')
+			if (
+				incoming &&
+				outgoing &&
+				Math.abs(outgoing.getBoundingClientRect().y - incoming.getBoundingClientRect().y) < 1
+			) {
+				saved.dataset.crossfaded = 'true'
+			}
+		})
+	})
+	const downloaded = page.waitForEvent('download')
+	releasePhotos()
+	await downloaded
 
-	await expect(dialog.getByRole('status')).toHaveText('Архив сохранён')
-	await expect(dialog.getByRole('status')).toHaveCount(0, { timeout: 6000 })
+	const status = dialog.getByRole('status')
+	await expect(status).toHaveText('Архив сохранён')
+	await expect(status).toHaveAttribute('data-crossfaded', 'true')
+	await expect(status).toHaveCount(0, { timeout: 6000 })
 })
 
 test('download controls and the progress label fit a 320px screen', async ({ page }) => {
@@ -201,7 +256,8 @@ test('closing the modal keeps the gallery in place during the exit transition', 
 	await expect(dialog).toHaveCount(0)
 })
 
-test('explains why a gallery is paused offline and resumes on reconnect', async ({ page, context }) => {
+test('explains the offline pause and resumes without shifting the skeleton', async ({ page, context }) => {
+	const releaseCard = await holdRoute(page, CARD_URL)
 	await page.goto('/')
 	await page.getByLabel('Артикул или ссылка WB').focus()
 	await page.waitForFunction(() =>
@@ -212,8 +268,13 @@ test('explains why a gallery is paused offline and resumes on reconnect', async 
 	await submitArticle(page)
 	const dialog = page.getByRole('dialog')
 	await expect(dialog.getByRole('status')).toContainText('Загрузка карточки продолжится после подключения.')
-	await expect(dialog.getByTestId('gallery-tile-skeleton').first()).toBeVisible()
+	const skeleton = dialog.getByTestId('gallery-tile-skeleton')
+	await expect(skeleton).toBeVisible()
+	await expect(dialog).toHaveCSS('opacity', '1')
+	const beforeReconnect = await skeleton.boundingBox()
 	await context.setOffline(false)
-	await expect(dialog.getByRole('heading', { name: cardFixture.imt_name })).toBeVisible()
 	await expect(dialog.getByRole('status')).toHaveCount(0)
+	expect(await skeleton.boundingBox()).toEqual(beforeReconnect)
+	releaseCard()
+	await expect(dialog.getByRole('heading', { name: cardFixture.imt_name })).toBeVisible()
 })

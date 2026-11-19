@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Modal, type ModalProps } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
@@ -46,10 +46,20 @@ export function ProductMediaModal({ productId, onClose, onExited }: ProductMedia
 	// Mantine reads reduced motion in an effect, too late for a modal that mounts already open
 	const reduceMotion = useMediaQuery(REDUCED_MOTION_QUERY, false, { getInitialValueInEffect: false })
 	const transition = isPhone ? PHONE_TRANSITION : DESKTOP_TRANSITION
+	// Mantine only animates when opened changes after the first render.
+	const [ready, setReady] = useState(false)
+	useEffect(() => {
+		const frame = requestAnimationFrame(() => {
+			setReady(true)
+		})
+		return () => {
+			cancelAnimationFrame(frame)
+		}
+	}, [])
 
 	return (
 		<Modal
-			opened={opened}
+			opened={opened && (ready || reduceMotion)}
 			onClose={onClose}
 			title='Фото и видео товара'
 			closeButtonProps={{ 'aria-label': 'Закрыть галерею' }}

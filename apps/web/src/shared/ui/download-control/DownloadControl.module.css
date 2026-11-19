@@ -1,0 +1,31 @@
+/* Outgoing and incoming statuses share a row, so their heights never add up. */
+.statusSlot {
+	display: grid;
+	width: 100%;
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.status {
+	grid-area: 1 / 1;
+	align-self: start;
+}
+
+@media (24em <= width < 36em) {
+	.progressText {
+		/* The first byte count may wrap into a second line in the two-column footer. */
+		min-height: 2lh;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.result {
+		animation: result-appear 180ms ease-out both;
+	}
+}
+
+@keyframes result-appear {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+}

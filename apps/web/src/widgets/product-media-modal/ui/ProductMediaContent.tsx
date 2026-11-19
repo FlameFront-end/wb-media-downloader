@@ -42,11 +42,6 @@ export function ProductMediaContent({ productId, active }: ProductMediaContentPr
 	if (product || isPending) {
 		return (
 			<Stack gap='md' className={classes.fill} inert={!active}>
-				{!product && isPaused && (
-					<Alert role='status' color='blue' title='Нет сети'>
-						Загрузка карточки продолжится после подключения.
-					</Alert>
-				)}
 				{product && error && (
 					<Alert color='red' title='Не удалось обновить карточку'>
 						<Stack gap='xs' align='flex-start'>
@@ -55,7 +50,7 @@ export function ProductMediaContent({ productId, active }: ProductMediaContentPr
 						</Stack>
 					</Alert>
 				)}
-				<ProductGallery product={product} active={active} />
+				<ProductGallery product={product} active={active} waitingForNetwork={isPaused} />
 			</Stack>
 		)
 	}

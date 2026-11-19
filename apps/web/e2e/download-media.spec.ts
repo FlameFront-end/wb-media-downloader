@@ -62,7 +62,8 @@ test('downloads the video as a playable mp4', async ({ page }) => {
 	expect(durationSeconds).toBeCloseTo(PLAYLIST_DURATION_SECONDS, 1)
 })
 
-test('shows incoming bytes and retries a stalled segment', async ({ page }) => {
+test('shows incoming bytes without moving the controls and retries a stalled segment', async ({ page }) => {
+	await page.setViewportSize({ width: 414, height: 780 })
 	await page.clock.install()
 	await page.addInitScript(() => {
 		const fetchOtherwise = window.fetch.bind(window)
@@ -75,13 +76,17 @@ test('shows incoming bytes and retries a stalled segment', async ({ page }) => {
 			return new Response(
 				new ReadableStream({
 					start(controller) {
-						controller.enqueue(new Uint8Array(64 * 1024))
+						const firstBytes = () => {
+							controller.enqueue(new Uint8Array(64 * 1024))
+						}
+						document.addEventListener('first-video-bytes', firstBytes, { once: true })
 						const moreBytes = window.setTimeout(() => {
 							controller.enqueue(new Uint8Array(64 * 1024))
 						}, 8000)
 						options?.signal?.addEventListener(
 							'abort',
 							() => {
+								document.removeEventListener('first-video-bytes', firstBytes)
 								window.clearTimeout(moreBytes)
 								controller.error(new DOMException('Aborted', 'AbortError'))
 							},
@@ -93,8 +98,24 @@ test('shows incoming bytes and retries a stalled segment', async ({ page }) => {
 		}
 	})
 	const dialog = await openGallery(page)
-	await dialog.getByRole('button', { name: 'Скачать видео' }).click()
+	const videoButton = dialog.getByRole('button', { name: 'Скачать видео' })
+	const cancel = dialog.getByRole('button', { name: 'Отмена' })
+	await videoButton.click()
+	await expect(dialog.getByText('Сегментов 0 из 2', { exact: true })).toBeVisible()
+	await expect(dialog).toHaveCSS('opacity', '1')
+	await videoButton.evaluate(async button => {
+		const control = button.parentElement
+		const finiteAnimations = control
+			?.getAnimations({ subtree: true })
+			.filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity)
+		await Promise.allSettled(finiteAnimations?.map(animation => animation.finished) ?? [])
+	})
+	const before = await Promise.all([videoButton.boundingBox(), cancel.boundingBox()])
+	await page.evaluate(() => {
+		document.dispatchEvent(new Event('first-video-bytes'))
+	})
 	await expect(dialog.getByText('Сегментов 0 из 2 · 64 КБ')).toBeVisible()
+	expect(await Promise.all([videoButton.boundingBox(), cancel.boundingBox()])).toEqual(before)
 	await page.clock.runFor(8100)
 	await expect(dialog.getByText('Сегментов 0 из 2 · 128 КБ')).toBeVisible()
 	await page.clock.fastForward(5000)

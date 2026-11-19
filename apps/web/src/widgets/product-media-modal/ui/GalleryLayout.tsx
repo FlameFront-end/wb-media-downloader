@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { Box, SimpleGrid, Stack } from '@mantine/core'
+import { Box, SimpleGrid, Stack, Text } from '@mantine/core'
 
 import classes from './GalleryLayout.module.css'
 
@@ -16,6 +16,7 @@ interface GalleryLayoutProps {
 	loading?: boolean
 	/** Fade in gallery body only after a loading phase, not when data was already cached. */
 	contentAppear?: boolean
+	waitingForNetwork: boolean
 }
 
 /**
@@ -29,22 +30,32 @@ export function GalleryLayout({
 	grid = true,
 	footer,
 	loading = false,
-	contentAppear = false
+	contentAppear = false,
+	waitingForNetwork
 }: GalleryLayoutProps) {
 	return (
 		<Stack
 			gap='md'
 			className={classes.layout}
-			aria-busy={loading || undefined}
+			aria-busy={(loading && !waitingForNetwork) || undefined}
 			aria-label={loading ? 'Загрузка карточки' : undefined}
 		>
 			<Stack
-				gap='md'
+				gap='sm'
 				className={contentAppear ? `${classes.scroll} ${classes.content}` : classes.scroll}
 				data-loading={loading || undefined}
 			>
-				<Box className={classes.title}>{title}</Box>
-				{toolbar ? <Box className={classes.toolbar}>{toolbar}</Box> : null}
+				<Box className={classes.header}>
+					<Box className={classes.headerSlots} data-paused={waitingForNetwork || undefined}>
+						<Box className={classes.title}>{title}</Box>
+						{toolbar}
+					</Box>
+					{waitingForNetwork && (
+						<Text className={classes.offline} role='status' size='sm'>
+							<strong>Нет сети.</strong> Загрузка карточки продолжится после подключения.
+						</Text>
+					)}
+				</Box>
 				{grid ? (
 					<SimpleGrid className={classes.grid} cols={{ base: 2, xs: 3, sm: 4 }} spacing='sm'>
 						{children}

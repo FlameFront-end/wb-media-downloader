@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import { Box, Checkbox, Group, Skeleton, Text, Title } from '@mantine/core'
+import { useReducedMotion } from '@mantine/hooks'
 
 import type { Product } from '@/entities/product'
 import { DownloadPhotosButton } from '@/features/download-photos'
@@ -17,10 +18,12 @@ const BUTTON_HEIGHT = 36
 interface ProductGalleryProps {
 	product?: Product
 	active: boolean
+	waitingForNetwork: boolean
 }
 
-export function ProductGallery({ product, active }: ProductGalleryProps) {
+export function ProductGallery({ product, active, waitingForNetwork }: ProductGalleryProps) {
 	const isLoading = !product
+	const animateSkeleton = !useReducedMotion(false, { getInitialValueInEffect: false })
 	// A gallery instance is tied to one opening: once loaded, it keeps its cached product.
 	const [openedWithSkeleton] = useState(isLoading)
 	const contentAppear = !isLoading && openedWithSkeleton
@@ -32,22 +35,23 @@ export function ProductGallery({ product, active }: ProductGalleryProps) {
 		<GalleryLayout
 			loading={isLoading}
 			contentAppear={contentAppear}
+			waitingForNetwork={isLoading && waitingForNetwork}
 			title={
 				isLoading ? (
-					<Skeleton width='60%'>
+					<Skeleton animate={animateSkeleton} width='60%'>
 						<Title order={3} size='h4' aria-hidden>
 							&nbsp;
 						</Title>
 					</Skeleton>
 				) : (
-					<Title order={3} size='h4' lineClamp={2}>
+					<Title order={3} size='h4' className={classes.productTitle} title={product.name}>
 						{product.name}
 					</Title>
 				)
 			}
 			toolbar={
 				isLoading ? (
-					<Skeleton>
+					<Skeleton animate={animateSkeleton}>
 						<Group gap='sm' aria-hidden>
 							<Checkbox label='Выбрать все' disabled tabIndex={-1} />
 							<Text size='sm' c='dimmed'>
@@ -63,8 +67,13 @@ export function ProductGallery({ product, active }: ProductGalleryProps) {
 			footer={
 				isLoading ? (
 					<>
-						<Skeleton height={BUTTON_HEIGHT} width={150} />
-						<Skeleton height={BUTTON_HEIGHT} width={140} className={classes.videoPlaceholder} />
+						<Skeleton animate={animateSkeleton} height={BUTTON_HEIGHT} width={150} />
+						<Skeleton
+							animate={animateSkeleton}
+							height={BUTTON_HEIGHT}
+							width={140}
+							className={classes.videoPlaceholder}
+						/>
 					</>
 				) : (
 					<>
@@ -86,7 +95,7 @@ export function ProductGallery({ product, active }: ProductGalleryProps) {
 						className={classes.skeletonTile}
 						data-testid={index === 0 ? 'gallery-tile-skeleton' : undefined}
 					>
-						<Skeleton w='100%' h='100%' radius='sm' />
+						<Skeleton animate={animateSkeleton} w='100%' h='100%' radius='sm' />
 					</Box>
 				))
 			) : hasPhotos ? (

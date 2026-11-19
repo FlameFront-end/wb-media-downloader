@@ -4,6 +4,8 @@
 
 /* A clear edge between the sticky header and photos scrolling under it */
 .header {
+	min-height: 0;
+	padding-block: var(--mantine-spacing-xs);
 	border-bottom: 1px solid var(--mantine-color-default-border);
 }
 
@@ -22,7 +24,7 @@
 	flex-direction: column;
 	min-height: 0;
 	overflow: hidden;
-	padding-top: var(--mb-padding, var(--mantine-spacing-md));
+	padding-top: var(--mantine-spacing-sm);
 }
 
 .fill {

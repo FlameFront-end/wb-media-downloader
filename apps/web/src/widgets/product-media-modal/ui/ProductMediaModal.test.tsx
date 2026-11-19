@@ -44,7 +44,7 @@ describe('ProductMediaModal', () => {
 	it('shows skeleton while loading', async () => {
 		renderModal(KNOWN_NM)
 
-		expect(screen.getByLabelText('Загрузка карточки')).toHaveAttribute('aria-busy', 'true')
+		expect(await screen.findByLabelText('Загрузка карточки')).toHaveAttribute('aria-busy', 'true')
 		expect(await screen.findByRole('heading', { name: cardFixture.imt_name })).toBeInTheDocument()
 	})
 

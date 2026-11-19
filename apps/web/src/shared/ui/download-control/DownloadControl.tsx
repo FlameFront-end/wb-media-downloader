@@ -1,8 +1,11 @@
 import { useState, type ReactNode } from 'react'
 
-import { Button, Collapse, Group, Progress, Stack, Text, type ButtonProps } from '@mantine/core'
+import { Box, Button, Collapse, Group, Progress, Stack, Text, type ButtonProps } from '@mantine/core'
+import { useReducedMotion } from '@mantine/hooks'
 
 import type { DownloadProgress, DownloadState } from '@/shared/lib'
+
+import classes from './DownloadControl.module.css'
 
 interface DownloadControlProps {
 	download: DownloadState
@@ -43,7 +46,14 @@ interface StatusProps {
 /** Status lines slide open and closed: the sticky bar grows smoothly instead of jumping. */
 function Status({ shown, children }: StatusProps) {
 	return (
-		<Collapse expanded={shown} transitionDuration={COLLAPSE_MS} keepMounted={false} w='100%'>
+		<Collapse
+			className={classes.status}
+			expanded={shown}
+			transitionDuration={COLLAPSE_MS}
+			keepMounted={false}
+			aria-hidden={!shown || undefined}
+			inert={!shown}
+		>
 			{children}
 		</Collapse>
 	)
@@ -62,6 +72,7 @@ export function DownloadControl({
 	formatError,
 	savedMessage
 }: DownloadControlProps) {
+	const reduceMotion = useReducedMotion(false, { getInitialValueInEffect: false })
 	// While running show live values; while the status collapses keep the last ones on screen
 	const lastProgress = useLastValue(progress)
 	const shownProgress = isPending ? progress : lastProgress
@@ -76,8 +87,7 @@ export function DownloadControl({
 	}
 
 	return (
-		// The button keeps its size (the loader replaces the label) and status lines open below it,
-		// so starting a download never reflows the bar
+		// The loader replaces the label without resizing the button.
 		<Stack gap={0} align='flex-start' w='100%' miw={0}>
 			<Button variant={variant} loading={isPending} disabled={disabled} onClick={onStart}>
 				{label}
@@ -89,40 +99,42 @@ export function DownloadControl({
 				</Text>
 			)}
 
-			<Status shown={isPending}>
-				<Stack gap={4} pt={8} w='100%' maw={320} aria-live='polite'>
-					{shownProgress && (
+			<Box className={classes.statusSlot}>
+				<Status shown={isPending}>
+					<Stack gap={4} pt={8} w='100%' maw={320} aria-live='polite'>
 						<Progress
-							value={shownProgress.total === 0 ? 0 : (shownProgress.done / shownProgress.total) * 100}
+							value={shownProgress?.total ? (shownProgress.done / shownProgress.total) * 100 : 0}
 							size='sm'
-							transitionDuration={200}
+							transitionDuration={reduceMotion ? 0 : 200}
 							aria-label={progressLabel}
+							aria-hidden={!shownProgress || undefined}
+							style={shownProgress ? undefined : { visibility: 'hidden' }}
 						/>
-					)}
-					<Group gap='xs' justify='space-between' wrap='nowrap'>
-						<Text size='xs' c='dimmed' flex={1} miw={0}>
-							{statusText}
+						<Group gap='xs' justify='space-between' wrap='nowrap'>
+							<Text size='xs' c='dimmed' flex={1} miw={0} className={classes.progressText}>
+								{statusText}
+							</Text>
+							<Button variant='subtle' color='gray' size='compact-xs' onClick={cancel}>
+								Отмена
+							</Button>
+						</Group>
+					</Stack>
+				</Status>
+
+				<Status shown={error !== null}>
+					{shownError && (
+						<Text size='sm' c='red' pt={6} role='alert' className={classes.result}>
+							{formatError(shownError)}
 						</Text>
-						<Button variant='subtle' color='gray' size='compact-xs' onClick={cancel}>
-							Отмена
-						</Button>
-					</Group>
-				</Stack>
-			</Status>
+					)}
+				</Status>
 
-			<Status shown={error !== null}>
-				{shownError && (
-					<Text size='sm' c='red' pt={6} role='alert'>
-						{formatError(shownError)}
+				<Status shown={isSaved}>
+					<Text size='xs' c='teal' fw={500} pt={6} role='status' className={classes.result}>
+						{savedMessage}
 					</Text>
-				)}
-			</Status>
-
-			<Status shown={isSaved}>
-				<Text size='xs' c='teal' pt={6} role='status'>
-					{savedMessage}
-				</Text>
-			</Status>
+				</Status>
+			</Box>
 		</Stack>
 	)
 }
