@@ -99,9 +99,16 @@ describe('downloadProductVideo', () => {
 	})
 
 	it('fails when a segment cannot be downloaded', async () => {
-		server.use(http.get(`${BASE}/1440p/1.ts`, () => new HttpResponse(null, { status: 503 })))
+		let attempts = 0
+		server.use(
+			http.get(`${BASE}/1440p/1.ts`, () => {
+				attempts++
+				return new HttpResponse(null, { status: 503 })
+			})
+		)
 
 		await expect(downloadProductVideo(video)).rejects.toMatchObject({ status: 503 })
+		expect(attempts).toBe(2)
 	})
 
 	it('releases the transmuxer whether the download succeeds or fails', async () => {

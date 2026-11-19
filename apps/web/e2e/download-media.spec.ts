@@ -61,3 +61,45 @@ test('downloads the video as a playable mp4', async ({ page }) => {
 	expect(boxes).toEqual(['ftyp', 'moov', ...Array.from({ length: fragmentCount }, () => ['moof', 'mdat']).flat()])
 	expect(durationSeconds).toBeCloseTo(PLAYLIST_DURATION_SECONDS, 1)
 })
+
+test('shows incoming bytes and retries a stalled segment', async ({ page }) => {
+	await page.clock.install()
+	await page.addInitScript(() => {
+		const fetchOtherwise = window.fetch.bind(window)
+		let attempts = 0
+		window.fetch = async (input, options) => {
+			if (typeof input !== 'string' || !input.endsWith('/1440p/0.ts') || ++attempts > 1) {
+				return fetchOtherwise(input, options)
+			}
+
+			return new Response(
+				new ReadableStream({
+					start(controller) {
+						controller.enqueue(new Uint8Array(64 * 1024))
+						const moreBytes = window.setTimeout(() => {
+							controller.enqueue(new Uint8Array(64 * 1024))
+						}, 8000)
+						options?.signal?.addEventListener(
+							'abort',
+							() => {
+								window.clearTimeout(moreBytes)
+								controller.error(new DOMException('Aborted', 'AbortError'))
+							},
+							{ once: true }
+						)
+					}
+				})
+			)
+		}
+	})
+	const dialog = await openGallery(page)
+	await dialog.getByRole('button', { name: 'Скачать видео' }).click()
+	await expect(dialog.getByText('Сегментов 0 из 2 · 64 КБ')).toBeVisible()
+	await page.clock.runFor(8100)
+	await expect(dialog.getByText('Сегментов 0 из 2 · 128 КБ')).toBeVisible()
+	await page.clock.fastForward(5000)
+	await expect(dialog.getByText('Сегментов 0 из 2 · 128 КБ')).toBeVisible()
+
+	const [download] = await Promise.all([page.waitForEvent('download'), page.clock.fastForward(12_100)])
+	expect(inspectMp4(await downloaded(download)).durationSeconds).toBeCloseTo(PLAYLIST_DURATION_SECONDS, 1)
+})

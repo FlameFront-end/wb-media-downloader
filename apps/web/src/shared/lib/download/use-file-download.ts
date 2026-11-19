@@ -9,11 +9,12 @@ import { saveBlob } from './save-blob'
 export interface DownloadProgress {
 	done: number
 	total: number
+	bytesReceived?: number
 }
 
 export interface DownloadTaskContext {
 	signal: AbortSignal
-	onProgress: (done: number, total: number) => void
+	onProgress: (done: number, total: number, bytesReceived?: number) => void
 }
 
 export interface DownloadedFile {
@@ -88,9 +89,9 @@ export function useFileDownload(mutationKey: MutationKey, active: boolean): File
 
 			const { file, filename } = await task({
 				signal,
-				onProgress: (done, total) => {
+				onProgress: (done, total, bytesReceived) => {
 					if (!signal.aborted) {
-						setProgress({ done, total })
+						setProgress({ done, total, bytesReceived })
 					}
 				}
 			})

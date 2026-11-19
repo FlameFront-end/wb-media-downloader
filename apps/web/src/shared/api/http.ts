@@ -45,10 +45,30 @@ async function fetchOk(url: string, init: RequestInit): Promise<Response> {
 	return response
 }
 
-export async function fetchBytes(url: string, options: RequestOptions = {}): Promise<Uint8Array<ArrayBuffer>> {
-	const response = await fetchOk(url, options)
+interface ByteRequestOptions extends RequestOptions {
+	onBytes?: (received: number) => void
+}
 
-	return new Uint8Array(await response.arrayBuffer())
+export async function fetchBytes(
+	url: string,
+	{ signal, onBytes }: ByteRequestOptions = {}
+): Promise<Uint8Array<ArrayBuffer>> {
+	const response = await fetchOk(url, { signal })
+	if (!onBytes || !response.body) {
+		return new Uint8Array(await response.arrayBuffer())
+	}
+
+	let received = 0
+	const stream = response.body.pipeThrough(
+		new TransformStream({
+			transform(chunk, controller) {
+				received += chunk.byteLength
+				onBytes(received)
+				controller.enqueue(chunk)
+			}
+		})
+	)
+	return new Uint8Array(await new Response(stream).arrayBuffer())
 }
 
 export async function fetchText(url: string, options: RequestOptions = {}): Promise<string> {

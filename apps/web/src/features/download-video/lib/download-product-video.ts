@@ -1,6 +1,6 @@
 import type { ProductVideo, ProductVideoSource } from '@/entities/product'
-import { fetchBytes, fetchText, HttpError, type VideoQuality } from '@/shared/api'
-import { createMp4Transmuxer, parseMediaPlaylist, type MediaPlaylist } from '@/shared/lib'
+import { fetchBytes, fetchText, HttpError, isRetryableError, type VideoQuality } from '@/shared/api'
+import { createMp4Transmuxer, parseMediaPlaylist, type DownloadTaskContext, type MediaPlaylist } from '@/shared/lib'
 
 export class VideoUnavailableError extends Error {
 	override readonly name = 'VideoUnavailableError'
@@ -8,7 +8,58 @@ export class VideoUnavailableError extends Error {
 
 interface DownloadVideoOptions {
 	signal?: AbortSignal
-	onProgress?: (done: number, total: number) => void
+	onProgress?: DownloadTaskContext['onProgress']
+}
+
+const IDLE_TIMEOUT_MS = 12_000
+const PROGRESS_STEP_BYTES = 64 * 1024
+
+export function videoRequestTimedOut(error: unknown): boolean {
+	return error instanceof DOMException && error.name === 'TimeoutError'
+}
+
+async function fetchSegment(
+	url: string,
+	signal: AbortSignal | undefined,
+	onBytes: (received: number) => void
+): Promise<Uint8Array<ArrayBuffer>> {
+	for (let attempt = 0; ; attempt++) {
+		signal?.throwIfAborted()
+		const idle = new AbortController()
+		const requestSignal = signal ? AbortSignal.any([signal, idle.signal]) : idle.signal
+		let timer: ReturnType<typeof setTimeout>
+		const armTimeout = () =>
+			setTimeout(() => {
+				idle.abort(new DOMException('The video segment stopped transferring', 'TimeoutError'))
+			}, IDLE_TIMEOUT_MS)
+
+		timer = armTimeout()
+		let reported = 0
+		try {
+			if (attempt > 0) {
+				onBytes(0)
+			}
+			return await fetchBytes(url, {
+				signal: requestSignal,
+				onBytes(received) {
+					clearTimeout(timer)
+					timer = armTimeout()
+					if (received - reported >= PROGRESS_STEP_BYTES) {
+						reported = received
+						onBytes(received)
+					}
+				}
+			})
+		} catch (error) {
+			signal?.throwIfAborted()
+			if (attempt > 0 || (!idle.signal.aborted && !isRetryableError(error))) {
+				idle.signal.throwIfAborted()
+				throw error
+			}
+		} finally {
+			clearTimeout(timer)
+		}
+	}
 }
 
 interface DownloadedVideo {
@@ -23,10 +74,15 @@ async function resolvePlaylist(
 ): Promise<{ quality: VideoQuality; playlist: MediaPlaylist }> {
 	for (const source of sources) {
 		let text: string
+		const timeout = AbortSignal.timeout(IDLE_TIMEOUT_MS)
 
 		try {
-			text = await fetchText(source.playlistUrl, { signal })
+			text = await fetchText(source.playlistUrl, {
+				signal: signal ? AbortSignal.any([signal, timeout]) : timeout
+			})
 		} catch (error) {
+			signal?.throwIfAborted()
+			timeout.throwIfAborted()
 			if (error instanceof HttpError && error.status === 404) {
 				continue
 			}
@@ -61,7 +117,10 @@ export async function downloadProductVideo(
 		onProgress?.(0, total)
 
 		for (const [index, segment] of playlist.segments.entries()) {
-			transmuxer.push(await fetchBytes(segment.url, { signal }))
+			const bytes = await fetchSegment(segment.url, signal, received => {
+				onProgress?.(index, total, received)
+			})
+			transmuxer.push(bytes)
 			onProgress?.(index + 1, total)
 		}
 

@@ -2,7 +2,7 @@ import type { Product } from '@/entities/product'
 import { InvalidSegmentError, UnsupportedPlaylistError } from '@/shared/lib'
 import { DownloadControl } from '@/shared/ui'
 
-import { VideoUnavailableError } from '../lib/download-product-video'
+import { videoRequestTimedOut, VideoUnavailableError } from '../lib/download-product-video'
 import { useDownloadVideo } from '../model/use-download-video'
 
 interface DownloadVideoButtonProps {
@@ -11,6 +11,10 @@ interface DownloadVideoButtonProps {
 }
 
 function formatError(error: Error): string {
+	if (videoRequestTimedOut(error)) {
+		return 'Сервер видео долго не отвечает. Попробуйте ещё раз.'
+	}
+
 	if (error instanceof VideoUnavailableError) {
 		return 'Видео недоступно на CDN.'
 	}
@@ -39,7 +43,14 @@ export function DownloadVideoButton({ product, active }: DownloadVideoButtonProp
 			hint={hasVideo ? undefined : 'У товара нет видео'}
 			onStart={downloadVideo}
 			progressLabel='Прогресс скачивания видео'
-			formatProgress={({ done, total }) => `Сегментов ${done} из ${total}`}
+			formatProgress={({ done, total, bytesReceived }) => {
+				if (!bytesReceived) {
+					return `Сегментов ${done} из ${total}`
+				}
+				const kib = Math.round(bytesReceived / 1024)
+				const loaded = kib < 1024 ? `${kib} КБ` : `${(kib / 1024).toFixed(1).replace('.', ',')} МБ`
+				return `Сегментов ${done} из ${total} · ${loaded}`
+			}}
 			formatError={formatError}
 			savedMessage='Видео сохранено'
 		/>
