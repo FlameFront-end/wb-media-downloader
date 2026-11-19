@@ -39,3 +39,25 @@ export async function fetchJson<Schema extends z.ZodType>(
 
 	return result.data
 }
+
+async function fetchOk(url: string, { signal }: RequestOptions): Promise<Response> {
+	const response = await fetch(url, { signal })
+
+	if (!response.ok) {
+		throw new HttpError(response.status, url)
+	}
+
+	return response
+}
+
+export async function fetchBytes(url: string, options: RequestOptions = {}): Promise<Uint8Array<ArrayBuffer>> {
+	const response = await fetchOk(url, options)
+
+	return new Uint8Array(await response.arrayBuffer())
+}
+
+export async function fetchText(url: string, options: RequestOptions = {}): Promise<string> {
+	const response = await fetchOk(url, options)
+
+	return response.text()
+}

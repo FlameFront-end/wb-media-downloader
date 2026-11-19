@@ -37,6 +37,10 @@ class ResizeObserverStub implements ResizeObserver {
 window.ResizeObserver = ResizeObserverStub
 window.HTMLElement.prototype.scrollIntoView = () => undefined
 
+/* jsdom has no object URLs; tests spy on these (see test/downloads.ts) */
+URL.createObjectURL = () => 'blob:test'
+URL.revokeObjectURL = () => undefined
+
 beforeAll(() => {
 	server.listen({ onUnhandledFrame: 'error' })
 })

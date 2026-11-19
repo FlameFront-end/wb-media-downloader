@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 
-import { SimpleGrid, Stack, Text, Title } from '@mantine/core'
+import { Divider, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core'
 
 import type { Product } from '@/entities/product'
+import { DownloadPhotosButton } from '@/features/download-photos'
+import { DownloadVideoButton } from '@/features/download-video'
 import { SelectablePhoto, SelectAllPhotos, usePhotoSelection } from '@/features/select-photos'
 
 interface ProductGalleryProps {
@@ -37,6 +39,12 @@ export function ProductGallery({ product }: ProductGalleryProps) {
 					</SimpleGrid>
 				</>
 			)}
+
+			<Divider />
+			<Group align='flex-start' justify='space-between' gap='md'>
+				<DownloadPhotosButton product={product} selectedIndexes={selection.selectedIndexes} />
+				<DownloadVideoButton product={product} />
+			</Group>
 		</Stack>
 	)
 }

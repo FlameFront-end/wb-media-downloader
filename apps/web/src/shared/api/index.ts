@@ -1,5 +1,5 @@
 export { HttpError, InvalidResponseError, isRetryableError } from './errors'
-export { fetchJson } from './http'
+export { fetchBytes, fetchJson, fetchText } from './http'
 export {
 	buildCardInfoUrl,
 	buildPhotoUrl,
