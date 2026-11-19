@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { blobBytes } from '../../../../test/downloads'
-import { PLAYLIST_DURATION_SECONDS, segmentFixtures } from '../../../../test/msw/fixtures/hls'
+import { blobBytes } from '../../../../../test/downloads'
+import { PLAYLIST_DURATION_SECONDS, segmentFixtures } from '../../../../../test/msw/fixtures/hls'
 
 import { InvalidSegmentError, UnsupportedPlaylistError } from './errors'
 import { createMp4Transmuxer } from './mp4-transmuxer'

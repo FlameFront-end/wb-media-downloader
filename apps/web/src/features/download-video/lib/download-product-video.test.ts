@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ProductVideo } from '@/entities/product'
 import { HttpError, ResponseTooLargeError, VIDEO_QUALITIES } from '@/shared/api'
-import type * as sharedLib from '@/shared/lib'
-import { InvalidSegmentError, UnsupportedPlaylistError } from '@/shared/lib'
 
 import { segmentFixtures } from '../../../../test/msw/fixtures/hls'
 import { server } from '../../../../test/msw/server'
 
 import { downloadProductVideo, VideoUnavailableError } from './download-product-video'
+import { InvalidSegmentError, UnsupportedPlaylistError } from './hls/errors'
+import type * as hlsMuxer from './hls/mp4-transmuxer'
 
 const BASE = 'https://videonme-basket-10.wbbasket.ru/vol114/part60417/604174866/hls'
 const video: ProductVideo = {
@@ -19,8 +19,8 @@ const notFound = () => new HttpResponse(null, { status: 404 })
 
 const transmuxers = vi.hoisted(() => ({ created: 0, disposed: 0 }))
 
-vi.mock('@/shared/lib', async importOriginal => {
-	const lib = await importOriginal<typeof sharedLib>()
+vi.mock('./hls/mp4-transmuxer', async importOriginal => {
+	const lib = await importOriginal<typeof hlsMuxer>()
 
 	return {
 		...lib,

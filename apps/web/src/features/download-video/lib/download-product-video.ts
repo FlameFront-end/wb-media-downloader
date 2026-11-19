@@ -7,14 +7,11 @@ import {
 	ResponseTooLargeError,
 	type VideoQuality
 } from '@/shared/api'
-import {
-	createMp4Transmuxer,
-	MAX_DOWNLOAD_BYTES,
-	MAX_MEDIA_RESPONSE_BYTES,
-	parseMediaPlaylist,
-	type DownloadTaskContext,
-	UnsupportedPlaylistError
-} from '@/shared/lib'
+import { MAX_DOWNLOAD_BYTES, MAX_MEDIA_RESPONSE_BYTES, type DownloadTaskContext } from '@/shared/lib'
+
+import { UnsupportedPlaylistError } from './hls/errors'
+import { createMp4Transmuxer } from './hls/mp4-transmuxer'
+import { parseMediaPlaylist } from './hls/parse-media-playlist'
 
 export class VideoUnavailableError extends Error {
 	override readonly name = 'VideoUnavailableError'

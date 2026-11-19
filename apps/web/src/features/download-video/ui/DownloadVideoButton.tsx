@@ -1,9 +1,9 @@
 import type { Product } from '@/entities/product'
 import { isTimeoutError, ResponseTooLargeError } from '@/shared/api'
-import { InvalidSegmentError, UnsupportedPlaylistError } from '@/shared/lib'
 import { DownloadControl } from '@/shared/ui'
 
 import { VideoUnavailableError } from '../lib/download-product-video'
+import { InvalidSegmentError, UnsupportedPlaylistError } from '../lib/hls/errors'
 import { useDownloadVideo } from '../model/use-download-video'
 
 interface DownloadVideoButtonProps {
