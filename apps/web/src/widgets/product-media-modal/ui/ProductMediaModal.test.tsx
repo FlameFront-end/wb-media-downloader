@@ -113,11 +113,45 @@ describe('ProductMediaModal', () => {
 
 		const alert = await screen.findByRole('alert')
 		expect(within(alert).getByText('Не удалось загрузить карточку')).toBeInTheDocument()
+		// 503 is the CDN, not the user's connection
+		expect(alert).toHaveTextContent('Серверы Wildberries сейчас не отвечают')
 
 		network.failing = false
 		await user.click(within(alert).getByRole('button', { name: 'Повторить' }))
 
 		expect(await screen.findByRole('heading', { name: cardFixture.imt_name })).toBeInTheDocument()
+	})
+
+	it('retries from the error screen with a loader in the button instead of the skeleton', async () => {
+		let failing = true
+		let release!: () => void
+		const released = new Promise<void>(resolve => {
+			release = resolve
+		})
+		server.use(
+			http.get(CARD_URL, async () => {
+				if (failing) {
+					return new HttpResponse(null, { status: 503 })
+				}
+				await released
+				return HttpResponse.json(cardFixture)
+			})
+		)
+		const user = userEvent.setup()
+		renderModal(KNOWN_NM)
+
+		const alert = await screen.findByRole('alert')
+		failing = false
+		await user.click(within(alert).getByRole('button', { name: 'Повторить' }))
+
+		expect(within(screen.getByRole('alert')).getByRole('button', { name: 'Повторить' })).toHaveAttribute(
+			'data-loading'
+		)
+		expect(screen.queryByLabelText('Загрузка карточки')).not.toBeInTheDocument()
+
+		release()
+		expect(await screen.findByRole('heading', { name: cardFixture.imt_name })).toBeInTheDocument()
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 	})
 
 	it('shows empty state for product without photos', async () => {

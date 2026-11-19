@@ -1,0 +1,48 @@
+.message {
+	flex: 1;
+	align-items: center;
+	justify-content: center;
+	padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+	text-align: center;
+	animation: message-appear 200ms ease-out both;
+}
+
+.icon {
+	display: grid;
+	place-items: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+}
+
+.icon svg {
+	width: 24px;
+	height: 24px;
+}
+
+.icon[data-tone="error"] {
+	background-color: var(--mantine-color-red-light);
+	color: var(--mantine-color-red-light-color);
+}
+
+.icon[data-tone="notFound"] {
+	background-color: var(--mantine-color-default-hover);
+	color: var(--mantine-color-dimmed);
+}
+
+.action {
+	margin-top: var(--mantine-spacing-sm);
+}
+
+@keyframes message-appear {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.message {
+		animation: none;
+	}
+}
