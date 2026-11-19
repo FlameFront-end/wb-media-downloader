@@ -101,7 +101,7 @@ test('shows incoming bytes without moving the controls and retries a stalled seg
 	const videoButton = dialog.getByRole('button', { name: 'Скачать видео' })
 	const cancel = dialog.getByRole('button', { name: 'Отмена' })
 	await videoButton.click()
-	await expect(dialog.getByText('Сегментов 0 из 2', { exact: true })).toBeVisible()
+	await expect(dialog.getByText('0 из 2', { exact: true })).toBeVisible()
 	await expect(dialog).toHaveCSS('opacity', '1')
 	await videoButton.evaluate(async button => {
 		const control = button.parentElement
@@ -114,12 +114,12 @@ test('shows incoming bytes without moving the controls and retries a stalled seg
 	await page.evaluate(() => {
 		document.dispatchEvent(new Event('first-video-bytes'))
 	})
-	await expect(dialog.getByText('Сегментов 0 из 2 · 64 КБ')).toBeVisible()
+	await expect(dialog.getByText('0 из 2 · 64 КБ')).toBeVisible()
 	expect(await Promise.all([videoButton.boundingBox(), cancel.boundingBox()])).toEqual(before)
 	await page.clock.runFor(8100)
-	await expect(dialog.getByText('Сегментов 0 из 2 · 128 КБ')).toBeVisible()
+	await expect(dialog.getByText('0 из 2 · 128 КБ')).toBeVisible()
 	await page.clock.fastForward(5000)
-	await expect(dialog.getByText('Сегментов 0 из 2 · 128 КБ')).toBeVisible()
+	await expect(dialog.getByText('0 из 2 · 128 КБ')).toBeVisible()
 
 	const [download] = await Promise.all([page.waitForEvent('download'), page.clock.fastForward(12_100)])
 	expect(inspectMp4(await downloaded(download)).durationSeconds).toBeCloseTo(PLAYLIST_DURATION_SECONDS, 1)

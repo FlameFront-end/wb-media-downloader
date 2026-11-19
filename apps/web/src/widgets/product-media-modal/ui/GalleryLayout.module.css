@@ -69,6 +69,7 @@
 
 /* The footer sits outside the scroll area. */
 .footer {
+	position: relative;
 	flex-shrink: 0;
 	margin-inline: calc(var(--mb-padding, var(--mantine-spacing-md)) * -1);
 	margin-bottom: calc(var(--mb-padding, var(--mantine-spacing-md)) * -1);
@@ -91,7 +92,6 @@
 
 	.actions > :last-child {
 		align-items: flex-end;
-		justify-self: end;
 	}
 }
 

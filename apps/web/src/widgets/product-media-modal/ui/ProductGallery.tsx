@@ -7,13 +7,11 @@ import type { Product } from '@/entities/product'
 import { DownloadPhotosButton } from '@/features/download-photos'
 import { DownloadVideoButton } from '@/features/download-video'
 import { SelectablePhoto, SelectAllPhotos, usePhotoSelection } from '@/features/select-photos'
+import { DownloadControlSkeleton } from '@/shared/ui'
 
 import { SKELETON_TILES } from './gallery-grid'
 import { GalleryLayout } from './GalleryLayout'
 import classes from './ProductGallery.module.css'
-
-/** Same height as a default Mantine button. */
-const BUTTON_HEIGHT = 36
 
 interface ProductGalleryProps {
 	product?: Product
@@ -67,13 +65,8 @@ export function ProductGallery({ product, active, waitingForNetwork }: ProductGa
 			footer={
 				isLoading ? (
 					<>
-						<Skeleton animate={animateSkeleton} height={BUTTON_HEIGHT} width={150} />
-						<Skeleton
-							animate={animateSkeleton}
-							height={BUTTON_HEIGHT}
-							width={140}
-							className={classes.videoPlaceholder}
-						/>
+						<DownloadControlSkeleton animate={animateSkeleton} />
+						<DownloadControlSkeleton animate={animateSkeleton} />
 					</>
 				) : (
 					<>

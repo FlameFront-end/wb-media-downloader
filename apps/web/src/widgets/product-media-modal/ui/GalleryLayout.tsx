@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 
 import { Box, SimpleGrid, Stack, Text } from '@mantine/core'
 
+import { DownloadErrorRegion } from '@/shared/ui'
+
 import classes from './GalleryLayout.module.css'
 
 interface GalleryLayoutProps {
@@ -65,7 +67,9 @@ export function GalleryLayout({
 				)}
 			</Stack>
 			<Box className={classes.footer}>
-				<Box className={classes.actions}>{footer}</Box>
+				<DownloadErrorRegion>
+					<Box className={classes.actions}>{footer}</Box>
+				</DownloadErrorRegion>
 			</Box>
 		</Stack>
 	)

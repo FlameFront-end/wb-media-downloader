@@ -19,10 +19,6 @@
 	aspect-ratio: 3 / 4;
 }
 
-.videoPlaceholder {
-	max-width: 100%;
-}
-
 /* 2 columns → 3 rows. Keep in sync with the gallery breakpoints in GalleryLayout. */
 .skeletonTile:nth-child(n + 7) {
 	display: none;

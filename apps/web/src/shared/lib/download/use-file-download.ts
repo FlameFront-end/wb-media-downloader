@@ -41,6 +41,8 @@ export interface DownloadState {
 	error: Error | null
 	/** True for a few seconds after the file was handed to the browser. */
 	isSaved: boolean
+	/** Hides the last error without starting anything. */
+	dismissError: () => void
 }
 
 export interface FileDownload extends DownloadState {
@@ -52,7 +54,7 @@ export interface FileDownload extends DownloadState {
  * Cancellation is bound to the click: a run that was cancelled, replaced or
  * outlived its component (paused offline, then resumed) never saves a file.
  */
-const SAVED_HINT_MS = 4000
+const SAVED_HINT_MS = 2500
 
 export function useFileDownload(mutationKey: MutationKey, active: boolean): FileDownload {
 	const controllerRef = useRef<AbortController | null>(null)
@@ -143,6 +145,7 @@ export function useFileDownload(mutationKey: MutationKey, active: boolean): File
 		isPending,
 		isPaused,
 		error: error && !isAbortError(error) ? error : null,
-		isSaved
+		isSaved,
+		dismissError: reset
 	}
 }

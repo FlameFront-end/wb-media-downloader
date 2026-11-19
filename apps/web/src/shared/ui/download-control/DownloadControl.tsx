@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { createContext, useContext, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
-import { Box, Button, Collapse, Group, Progress, Stack, Text, type ButtonProps } from '@mantine/core'
-import { useReducedMotion } from '@mantine/hooks'
+import { Button, CloseButton, Skeleton, Text, Transition, VisuallyHidden, type ButtonProps } from '@mantine/core'
 
 import type { DownloadProgress, DownloadState } from '@/shared/lib'
 
@@ -9,23 +9,40 @@ import classes from './DownloadControl.module.css'
 
 interface DownloadControlProps {
 	download: DownloadState
-	label: ReactNode
+	/** Also the button's accessible name in every state. */
+	label: string
 	onStart: () => void
 	variant?: ButtonProps['variant']
 	disabled?: boolean
-	/** Shown under an idle button, e.g. why it is disabled. */
+	/** Static note under an idle button, e.g. why it is disabled. */
 	hint?: ReactNode
 	progressLabel: string
+	/** Short enough to fit the button. */
 	formatProgress: (progress: DownloadProgress) => string
 	formatError: (error: Error) => string
-	/** Shown for a few seconds after the file was saved. */
+	/** Shown in the button for a moment after the file was saved. */
 	savedMessage: string
 }
 
-const COLLAPSE_MS = 180
+type ControlState = 'idle' | 'busy' | 'saved'
+
+const PAUSED_MESSAGE = 'Нет сети — загрузка начнётся после подключения'
+const DownloadErrorHost = createContext<HTMLDivElement | null>(null)
+
+/** Positions errors as a stack above all the download buttons. */
+export function DownloadErrorRegion({ children }: { children: ReactNode }) {
+	const [host, setHost] = useState<HTMLDivElement | null>(null)
+
+	return (
+		<DownloadErrorHost.Provider value={host}>
+			{children}
+			<div ref={setHost} className={classes.errorRegion} />
+		</DownloadErrorHost.Provider>
+	)
+}
 
 /**
- * Keeps the last non-null value, so a collapsing block still shows what it showed
+ * Keeps the last non-null value, so a fading error still shows its text
  * instead of going blank mid-animation.
  */
 function useLastValue<Value>(value: Value | null): Value | null {
@@ -38,30 +55,22 @@ function useLastValue<Value>(value: Value | null): Value | null {
 	return value ?? last
 }
 
-interface StatusProps {
-	shown: boolean
-	children: ReactNode
-}
-
-/** Status lines slide open and closed: the sticky bar grows smoothly instead of jumping. */
-function Status({ shown, children }: StatusProps) {
+function CheckIcon() {
 	return (
-		<Collapse
-			className={classes.status}
-			expanded={shown}
-			transitionDuration={COLLAPSE_MS}
-			keepMounted={false}
-			aria-hidden={!shown || undefined}
-			inert={!shown}
-		>
-			{children}
-		</Collapse>
+		<svg className={classes.check} viewBox='0 0 16 16' aria-hidden>
+			<path d='M3.5 8.5l3 3 6-7' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' />
+		</svg>
 	)
 }
 
-/** Download button with cancel, offline hint, progress, error and a saved note: the same flow for every file. */
+/**
+ * The whole download lives inside the button: it fills with progress, its label
+ * changes in place, and it turns green for a moment once the file is saved.
+ * Cancel takes a slot reserved next to it and errors float above it, so the
+ * download bar never changes its height.
+ */
 export function DownloadControl({
-	download: { cancel, progress, isPending, isPaused, error, isSaved },
+	download: { cancel, progress, isPending, isPaused, error, isSaved, dismissError },
 	label,
 	onStart,
 	variant,
@@ -72,69 +81,156 @@ export function DownloadControl({
 	formatError,
 	savedMessage
 }: DownloadControlProps) {
-	const reduceMotion = useReducedMotion(false, { getInitialValueInEffect: false })
-	// While running show live values; while the status collapses keep the last ones on screen
-	const lastProgress = useLastValue(progress)
-	const shownProgress = isPending ? progress : lastProgress
 	const shownError = useLastValue(error)
+	const errorHost = useContext(DownloadErrorHost)
+	const buttonRef = useRef<HTMLButtonElement>(null)
 
-	let statusText = 'Подготовка…'
+	const restoreButtonFocus = () => {
+		const button = buttonRef.current
+		const target = button?.disabled
+			? button.closest('[role="dialog"]')?.querySelector<HTMLButtonElement>('button:not(:disabled)')
+			: button
+		target?.focus({ preventScroll: true })
+	}
+	// Saved wins over the last pending render, so the end of a download never flashes «Подготовка…»
+	const state: ControlState = isSaved ? 'saved' : isPending ? 'busy' : 'idle'
+
+	// While the busy label fades out it keeps the last progress instead of falling back to «Подготовка…»
+	const lastProgress = useLastValue(progress)
+	const shownProgress = state === 'busy' ? progress : lastProgress
+
+	let busyText = 'Подготовка…'
 
 	if (isPaused) {
-		statusText = 'Нет сети — загрузка начнётся после подключения'
+		busyText = 'Ждём сеть…'
 	} else if (shownProgress) {
-		statusText = formatProgress(shownProgress)
+		busyText = formatProgress(shownProgress)
 	}
 
-	return (
-		// The loader replaces the label without resizing the button.
-		<Stack gap={0} align='flex-start' w='100%' miw={0}>
-			<Button variant={variant} loading={isPending} disabled={disabled} onClick={onStart}>
-				{label}
-			</Button>
+	const fraction = shownProgress?.total ? shownProgress.done / shownProgress.total : 0
+	const fillStyle = { '--download-progress': state === 'saved' ? 1 : fraction } as CSSProperties
 
-			{hint && !isPending && (
+	const errorNotice = (
+		<Transition mounted={error !== null} transition='slide-up' duration={180}>
+			{style => (
+				<div className={classes.error} style={style} inert={error === null}>
+					{shownError && (
+						<div className={classes.errorCard} role={error ? 'alert' : undefined}>
+							<Text size='sm' flex={1}>
+								{formatError(shownError)}
+							</Text>
+							<CloseButton
+								size='sm'
+								aria-label='Скрыть ошибку'
+								onClick={() => {
+									restoreButtonFocus()
+									dismissError()
+								}}
+							/>
+						</div>
+					)}
+				</div>
+			)}
+		</Transition>
+	)
+
+	return (
+		<div className={classes.root}>
+			{errorHost ? createPortal(errorNotice, errorHost) : errorNotice}
+
+			<div className={classes.main}>
+				<div className={classes.buttonFrame} data-state={state}>
+					<Button
+						className={classes.button}
+						ref={buttonRef}
+						classNames={{ inner: classes.inner, label: classes.buttonLabel }}
+						data-state={state}
+						variant={variant}
+						color={state === 'saved' ? 'teal' : undefined}
+						disabled={disabled}
+						aria-disabled={state === 'busy' || undefined}
+						aria-busy={state === 'busy' || undefined}
+						// Busy and saved texts are visual: progress is announced by the progressbar, saving by the status
+						aria-label={label}
+						onClick={state === 'busy' ? undefined : onStart}
+						fullWidth
+					>
+						<span className={classes.labels}>
+							{/* The idle label always takes the space, the others are laid over it */}
+							<span className={classes.label} data-active={state === 'idle' || undefined} aria-hidden>
+								{label}
+							</span>
+							<span
+								className={`${classes.label} ${classes.overlay}`}
+								data-active={state === 'busy' || undefined}
+								aria-hidden
+							>
+								{busyText}
+							</span>
+							<span
+								className={`${classes.label} ${classes.overlay}`}
+								data-active={state === 'saved' || undefined}
+								aria-hidden
+							>
+								<CheckIcon />
+								{savedMessage}
+							</span>
+						</span>
+					</Button>
+					<div className={classes.fillTrack}>
+						<div
+							className={classes.fill}
+							style={fillStyle}
+							data-shown={(state === 'busy' && progress !== null) || undefined}
+							data-indeterminate={(state === 'busy' && progress === null && !isPaused) || undefined}
+							role={state === 'busy' ? 'progressbar' : undefined}
+							aria-label={state === 'busy' ? progressLabel : undefined}
+							aria-valuemin={state === 'busy' ? 0 : undefined}
+							aria-valuemax={state === 'busy' ? 100 : undefined}
+							aria-valuenow={state === 'busy' && progress ? Math.round(fraction * 100) : undefined}
+							aria-valuetext={state === 'busy' ? busyText : undefined}
+						/>
+					</div>
+					{/* Laid over the pill's right edge as a sibling of the button: no nested buttons */}
+					<CloseButton
+						className={classes.cancel}
+						data-shown={state === 'busy' || undefined}
+						aria-label='Отмена'
+						title='Отменить скачивание'
+						aria-hidden={state !== 'busy'}
+						tabIndex={state === 'busy' ? undefined : -1}
+						onClick={() => {
+							restoreButtonFocus()
+							cancel()
+						}}
+					/>
+				</div>
+			</div>
+
+			{hint && (
 				<Text size='xs' c='dimmed' mt={6}>
 					{hint}
 				</Text>
 			)}
 
-			<Box className={classes.statusSlot}>
-				<Status shown={isPending}>
-					<Stack gap={4} pt={8} w='100%' maw={320} aria-live='polite'>
-						<Progress
-							value={shownProgress?.total ? (shownProgress.done / shownProgress.total) * 100 : 0}
-							size='sm'
-							transitionDuration={reduceMotion ? 0 : 200}
-							aria-label={progressLabel}
-							aria-hidden={!shownProgress || undefined}
-							style={shownProgress ? undefined : { visibility: 'hidden' }}
-						/>
-						<Group gap='xs' justify='space-between' wrap='nowrap'>
-							<Text size='xs' c='dimmed' flex={1} miw={0} className={classes.progressText}>
-								{statusText}
-							</Text>
-							<Button variant='subtle' color='gray' size='compact-xs' onClick={cancel}>
-								Отмена
-							</Button>
-						</Group>
-					</Stack>
-				</Status>
+			{/* Screen readers hear what the button only shows */}
+			<VisuallyHidden aria-live='polite'>{isPaused ? PAUSED_MESSAGE : null}</VisuallyHidden>
+			{isSaved && <VisuallyHidden role='status'>{savedMessage}</VisuallyHidden>}
+		</div>
+	)
+}
 
-				<Status shown={error !== null}>
-					{shownError && (
-						<Text size='sm' c='red' pt={6} role='alert' className={classes.result}>
-							{formatError(shownError)}
-						</Text>
-					)}
-				</Status>
+interface DownloadControlSkeletonProps {
+	animate?: boolean
+}
 
-				<Status shown={isSaved}>
-					<Text size='xs' c='teal' fw={500} pt={6} role='status' className={classes.result}>
-						{savedMessage}
-					</Text>
-				</Status>
-			</Box>
-		</Stack>
+/** Placeholder with the exact footprint of a DownloadControl button, column alignment included. */
+export function DownloadControlSkeleton({ animate = true }: DownloadControlSkeletonProps) {
+	return (
+		<div className={classes.root} aria-hidden>
+			<div className={classes.main}>
+				<Skeleton animate={animate} className={classes.skeleton} data-testid='download-button-skeleton' />
+			</div>
+		</div>
 	)
 }

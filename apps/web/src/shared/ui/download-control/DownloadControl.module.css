@@ -1,31 +1,251 @@
-/* Outgoing and incoming statuses share a row, so their heights never add up. */
-.statusSlot {
-	display: grid;
+.root {
+	display: flex;
+	flex-direction: column;
 	width: 100%;
+	min-width: 0;
+}
+
+.main {
+	display: flex;
+	min-width: 0;
+}
+
+/* Clips the progress fill to the button shape */
+.buttonFrame {
+	position: relative;
+	flex: 0 1 auto;
+	min-width: 0;
+}
+
+.button {
+	min-width: 12.5rem;
+	transition:
+		background-color 160ms ease,
+		color 160ms ease;
+}
+
+.button[data-state="busy"] {
+	cursor: progress;
+}
+
+.inner,
+.buttonLabel {
+	width: 100%;
+	min-width: 0;
+}
+
+/* Labels are stacked in one cell: the button never changes its width */
+.labels {
+	position: relative;
+	width: 100%;
+	display: grid;
 	grid-template-columns: minmax(0, 1fr);
+	align-items: center;
+	font-variant-numeric: tabular-nums;
 }
 
-.status {
+/* One label at a time: the old one leaves quickly, the new one comes in after it,
+   so two texts never overlap mid-swap */
+.label {
 	grid-area: 1 / 1;
-	align-self: start;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	opacity: 0;
+	transform: translateY(3px);
+	transition:
+		opacity 110ms ease-in,
+		transform 110ms ease-in;
 }
 
-@media (24em <= width < 36em) {
-	.progressText {
-		/* The first byte count may wrap into a second line in the two-column footer. */
-		min-height: 2lh;
+.label[data-active] {
+	opacity: 1;
+	transform: none;
+	transition:
+		opacity 180ms ease-out 110ms,
+		transform 240ms cubic-bezier(0.22, 1, 0.36, 1) 110ms;
+}
+
+/* Laid over the idle label: they do not size the button */
+.overlay {
+	position: absolute;
+	inset: 0;
+}
+
+.check {
+	flex-shrink: 0;
+	width: 1em;
+	height: 1em;
+}
+
+.fillTrack {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	border-radius: var(--mantine-radius-default);
+	pointer-events: none;
+}
+
+.fill {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	transform-origin: left center;
+	transform: scaleX(var(--download-progress, 0));
+	background-color: rgb(255 255 255 / 0.28);
+	opacity: 0;
+	transition:
+		transform 240ms ease-out,
+		opacity 240ms ease;
+}
+
+/* Light buttons get a tinted fill instead of a white one */
+.buttonFrame:has(.button[data-variant="light"]) .fill {
+	background-color: color-mix(in srgb, var(--mantine-primary-color-filled) 22%, transparent);
+}
+
+.fill[data-shown] {
+	opacity: 1;
+}
+
+.fill[data-indeterminate] {
+	transform: none;
+	opacity: 1;
+	animation: fill-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes fill-pulse {
+	0%,
+	100% {
+		opacity: 0.25;
+	}
+
+	50% {
+		opacity: 0.7;
 	}
 }
 
-@media (prefers-reduced-motion: no-preference) {
-	.result {
-		animation: result-appear 180ms ease-out both;
+/* Inside the right edge of the pill; the busy label keeps clear of it */
+.cancel {
+	position: absolute;
+	inset-block: 0;
+	inset-inline-end: 4px;
+	z-index: 1;
+	margin-block: auto;
+	color: var(--mantine-color-white);
+	visibility: hidden;
+	opacity: 0;
+	transform: scale(0.8);
+	transition:
+		opacity 160ms ease,
+		transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+		visibility 0s linear 200ms;
+}
+
+.cancel:hover {
+	background-color: rgb(255 255 255 / 0.18);
+}
+
+.buttonFrame:has(.button[data-variant="light"]) .cancel {
+	color: var(--mantine-primary-color-light-color);
+}
+
+.buttonFrame:has(.button[data-variant="light"]) .cancel:hover {
+	background-color: var(--mantine-primary-color-light-hover);
+}
+
+.cancel[data-shown] {
+	visibility: visible;
+	opacity: 1;
+	transform: none;
+	transition:
+		opacity 160ms ease 80ms,
+		transform 200ms cubic-bezier(0.22, 1, 0.36, 1) 80ms,
+		visibility 0s;
+}
+
+/* The progress label keeps clear of the cancel cross */
+.button[data-state="busy"] .overlay {
+	inset-inline-end: 26px;
+}
+
+/* A stack above the entire footer keeps both buttons clear on small screens. */
+.errorRegion {
+	position: absolute;
+	inset-inline: var(--mb-padding, var(--mantine-spacing-md));
+	bottom: calc(100% + 1px);
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+	pointer-events: none;
+}
+
+.error:not([inert]) {
+	pointer-events: auto;
+}
+
+.errorCard {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--mantine-spacing-xs);
+	max-width: 22rem;
+	padding: var(--mantine-spacing-xs) var(--mantine-spacing-xs) var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+	border: 1px solid var(--mantine-color-red-light-hover);
+	border-radius: var(--mantine-radius-md);
+	background-color: var(--mantine-color-body);
+	color: var(--mantine-color-red-text);
+	box-shadow: var(--mantine-shadow-md);
+}
+
+/* Same box as the button: default Mantine height, the button's minimum width */
+.skeleton {
+	width: 12.5rem;
+	max-width: 100%;
+	height: var(--button-height-sm, calc(2.25rem * var(--mantine-scale)));
+	border-radius: var(--mantine-radius-default);
+}
+
+/* Phones: each button fills its column */
+@media (max-width: 36em) {
+	.main {
+		width: 100%;
+	}
+
+	.skeleton {
+		width: 100%;
+	}
+
+	.button {
+		min-width: 0;
+		padding-inline: var(--mantine-spacing-sm);
+	}
+
+	.overlay {
+		font-size: var(--mantine-font-size-xs);
+	}
+
+	.buttonFrame {
+		flex: 1 1 auto;
 	}
 }
 
-@keyframes result-appear {
-	from {
-		opacity: 0;
-		transform: translateY(4px);
+@media (prefers-reduced-motion: reduce) {
+	.button,
+	.label,
+	.fill,
+	.cancel {
+		transition: none;
+	}
+
+	.fill[data-indeterminate] {
+		animation: none;
+		opacity: 0.5;
 	}
 }

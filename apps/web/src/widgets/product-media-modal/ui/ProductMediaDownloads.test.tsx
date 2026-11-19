@@ -258,9 +258,11 @@ describe('ProductMediaModal downloads', () => {
 			await user.click(screen.getByRole('button', { name: 'Отмена' }))
 			photos.release()
 
+			// The progress label fades out in place; the progressbar is gone right away
 			await waitFor(() => {
-				expect(screen.queryByText(/Загружено/)).not.toBeInTheDocument()
+				expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
 			})
+			expect(screen.getByRole('button', { name: 'Скачать фото (3)' })).not.toHaveAttribute('aria-busy')
 			expect(downloads).toHaveLength(0)
 			expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 		})

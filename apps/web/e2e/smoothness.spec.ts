@@ -14,14 +14,14 @@ async function submitArticle(page: Page) {
 
 /** Waits for the modal's open transition and the gallery fade; the endless skeleton pulse is skipped. */
 async function animationsSettled(page: Page) {
-	await page.getByRole('dialog').evaluate(dialog =>
-		Promise.all(
+	await page.getByRole('dialog').evaluate(async dialog => {
+		await Promise.allSettled(
 			dialog
 				.getAnimations({ subtree: true })
 				.filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity)
 				.map(animation => animation.finished)
 		)
-	)
+	})
 }
 
 /** Holds a route until the test lets it through. */
@@ -105,6 +105,9 @@ for (const [device, viewport] of [
 		await expect(skeletonTile).toBeVisible()
 		await animationsSettled(page)
 		const placeholder = await skeletonTile.boundingBox()
+		const buttonPlaceholders = await page
+			.getByTestId('download-button-skeleton')
+			.evaluateAll(elements => elements.map(element => element.getBoundingClientRect().toJSON() as DOMRect))
 
 		releaseCard()
 		const dialog = page.getByRole('dialog')
@@ -120,6 +123,21 @@ for (const [device, viewport] of [
 		for (const side of ['x', 'y', 'width', 'height'] as const) {
 			expect(Math.abs((tile?.[side] ?? 0) - (placeholder?.[side] ?? 0)), side).toBeLessThanOrEqual(1)
 		}
+
+		// Download buttons land exactly on their placeholders, the right one included
+		const buttons = await Promise.all([
+			dialog.getByRole('button', { name: /^Скачать фото/ }).boundingBox(),
+			dialog.getByRole('button', { name: 'Скачать видео' }).boundingBox()
+		])
+		expect(buttonPlaceholders).toHaveLength(2)
+		buttons.forEach((button, index) => {
+			for (const side of ['x', 'y', 'width', 'height'] as const) {
+				expect(
+					Math.abs((button?.[side] ?? 0) - (buttonPlaceholders[index]?.[side] ?? 0)),
+					`button ${index} ${side}`
+				).toBeLessThanOrEqual(1)
+			}
+		})
 	})
 }
 
@@ -163,43 +181,38 @@ test.describe('focus returns where the modal was opened from', () => {
 	})
 })
 
-test('fades from download progress to the saved message in the same space', async ({ page }) => {
+test('progress and the saved message play inside the button without moving it', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 780 })
 	const releasePhotos = await holdRoute(page, '**/images/big/**')
 	await page.goto('/')
 	await submitArticle(page)
 	const dialog = page.getByRole('dialog')
-	await dialog.getByRole('button', { name: 'Скачать фото (3)' }).click()
-	await expect(dialog.getByText('Загружено 0 из 3', { exact: true })).toBeVisible()
+	const button = dialog.getByRole('button', { name: 'Скачать фото (3)' })
+	const footer = dialog.locator('[class*=footer]').first()
 	await expect(dialog).toHaveCSS('opacity', '1')
 	await animationsSettled(page)
-	await page.evaluate(() => {
-		document.addEventListener('animationstart', event => {
-			const saved = event.target
-			if (!(saved instanceof HTMLElement) || saved.getAttribute('role') !== 'status') {
-				return
-			}
+	const idle = await Promise.all([button.boundingBox(), footer.boundingBox()])
 
-			const incoming = saved.parentElement
-			const progress = incoming?.parentElement?.querySelector('[role=progressbar]')
-			const outgoing = progress?.closest('[inert]')
-			if (
-				incoming &&
-				outgoing &&
-				Math.abs(outgoing.getBoundingClientRect().y - incoming.getBoundingClientRect().y) < 1
-			) {
-				saved.dataset.crossfaded = 'true'
-			}
-		})
-	})
+	await button.click()
+	await expect(button.getByText('Загружено 0 из 3', { exact: true })).toBeVisible()
+	await expect(dialog.getByRole('progressbar', { name: 'Прогресс скачивания фото' })).toHaveAttribute(
+		'aria-valuetext',
+		'Загружено 0 из 3'
+	)
+	await animationsSettled(page)
+	expect(await Promise.all([button.boundingBox(), footer.boundingBox()])).toEqual(idle)
+
 	const downloaded = page.waitForEvent('download')
 	releasePhotos()
 	await downloaded
 
-	const status = dialog.getByRole('status')
-	await expect(status).toHaveText('Архив сохранён')
-	await expect(status).toHaveAttribute('data-crossfaded', 'true')
-	await expect(status).toHaveCount(0, { timeout: 6000 })
+	await expect(dialog.getByRole('status')).toHaveText('Архив сохранён')
+	await expect(button.getByText('Архив сохранён')).toHaveCSS('opacity', '1')
+	expect(await Promise.all([button.boundingBox(), footer.boundingBox()])).toEqual(idle)
+
+	await expect(dialog.getByRole('status')).toHaveCount(0, { timeout: 6000 })
+	await expect(button.getByText('Скачать фото (3)')).toHaveCSS('opacity', '1')
+	expect(await Promise.all([button.boundingBox(), footer.boundingBox()])).toEqual(idle)
 })
 
 test('download controls and the progress label fit a 320px screen', async ({ page }) => {
@@ -211,12 +224,15 @@ test('download controls and the progress label fit a 320px screen', async ({ pag
 	const photos = dialog.getByRole('button', { name: 'Скачать фото (3)' })
 	const video = dialog.getByRole('button', { name: 'Скачать видео' })
 
-	const photoBox = await photos.boundingBox()
-	const videoBox = await video.boundingBox()
-	if (!photoBox || !videoBox) {
-		throw new Error('Both download buttons must have a visible bounding box')
-	}
-	expect(videoBox.y).toBeGreaterThanOrEqual(photoBox.y + photoBox.height)
+	await expect(dialog).toHaveCSS('opacity', '1')
+	await expect(photos).toBeVisible()
+	await expect(video).toBeVisible()
+	const clearance = await photos.evaluate(photo => {
+		const videoButton = photo.closest('[role=dialog]')?.querySelector('[aria-label="Скачать видео"]')
+		return videoButton ? videoButton.getBoundingClientRect().top - photo.getBoundingClientRect().bottom : null
+	})
+	expect(clearance).not.toBeNull()
+	expect(clearance ?? -1).toBeGreaterThanOrEqual(0)
 
 	await photos.click()
 	const progress = dialog.getByText('Загружено 0 из 3', { exact: true })
@@ -232,7 +248,9 @@ test('download controls and the progress label fit a 320px screen', async ({ pag
 	}
 	expect(labelRight).toBeLessThanOrEqual(cancelBox.x)
 
-	await cancel.click()
+	await cancel.focus()
+	await page.keyboard.press('Enter')
+	await expect(photos).toBeFocused()
 	releasePhotos()
 })
 
@@ -277,4 +295,47 @@ test('explains the offline pause and resumes without shifting the skeleton', asy
 	expect(await skeleton.boundingBox()).toEqual(beforeReconnect)
 	releaseCard()
 	await expect(dialog.getByRole('heading', { name: cardFixture.imt_name })).toBeVisible()
+})
+
+test('download errors stack above both buttons on a narrow screen and return focus when dismissed', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 320, height: 780 })
+	await page.route('**/images/big/2.webp', route => route.fulfill({ status: 503 }))
+	await page.route('**/index.m3u8', route => route.fulfill({ status: 404 }))
+	await page.goto('/')
+	await submitArticle(page)
+	const dialog = page.getByRole('dialog')
+	const footer = dialog.locator('[class*=footer]').first()
+	await expect(dialog).toHaveCSS('opacity', '1')
+	await animationsSettled(page)
+	const before = await footer.boundingBox()
+
+	const video = dialog.getByRole('button', { name: 'Скачать видео' })
+	await video.click()
+	const videoError = dialog.getByRole('alert').filter({ hasText: 'Видео недоступно' })
+	await expect(videoError).toBeVisible()
+
+	await dialog.getByRole('button', { name: 'Скачать фото (3)' }).click()
+	const photoError = dialog.getByRole('alert').filter({ hasText: 'Не удалось скачать' })
+	await expect(photoError).toBeVisible()
+	await animationsSettled(page)
+	const [photoBox, videoBox, after] = await Promise.all([
+		photoError.boundingBox(),
+		videoError.boundingBox(),
+		footer.boundingBox()
+	])
+	expect(after).toEqual(before)
+	if (!photoBox || !videoBox || !after) {
+		throw new Error('Both errors and the download bar must be visible')
+	}
+	expect(Math.max(photoBox.y + photoBox.height, videoBox.y + videoBox.height)).toBeLessThanOrEqual(after.y)
+	expect(photoBox.y + photoBox.height <= videoBox.y || videoBox.y + videoBox.height <= photoBox.y).toBe(true)
+
+	await videoError.getByRole('button', { name: 'Скрыть ошибку' }).focus()
+	await page.keyboard.press('Enter')
+	await expect(videoError).toHaveCount(0)
+	await expect(video).toBeFocused()
+	await expect(photoError).toBeVisible()
+	expect(await footer.boundingBox()).toEqual(before)
 })

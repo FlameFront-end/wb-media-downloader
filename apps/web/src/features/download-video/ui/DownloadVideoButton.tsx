@@ -45,11 +45,11 @@ export function DownloadVideoButton({ product, active }: DownloadVideoButtonProp
 			progressLabel='Прогресс скачивания видео'
 			formatProgress={({ done, total, bytesReceived }) => {
 				if (!bytesReceived) {
-					return `Сегментов ${done} из ${total}`
+					return `${done} из ${total}`
 				}
 				const kib = Math.round(bytesReceived / 1024)
 				const loaded = kib < 1024 ? `${kib} КБ` : `${(kib / 1024).toFixed(1).replace('.', ',')} МБ`
-				return `Сегментов ${done} из ${total} · ${loaded}`
+				return `${done} из ${total} · ${loaded}`
 			}}
 			formatError={formatError}
 			savedMessage='Видео сохранено'
