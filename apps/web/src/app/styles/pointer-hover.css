@@ -1,0 +1,21 @@
+/**
+ * Mantine gates interactive :hover behind @media (hover: hover) and uses :active on
+ * @media (hover: none). Hybrid laptops often report hover: none while a mouse still
+ * triggers :hover — mirror the hover rules for @media (hover: none) and (pointer: fine).
+ *
+ * Class names match @mantine/core Button.css and CloseButton.css.
+ */
+@media (hover: none) and (pointer: fine) {
+	.m_77c9d27d:hover:where(:not([data-loading], :disabled, [data-disabled])) {
+		background-color: var(--button-hover, var(--mantine-primary-color-filled-hover));
+		color: var(--button-hover-color, var(--button-color));
+	}
+
+	:where([data-mantine-color-scheme="light"]) .m_220c80f2:where(:not([data-disabled], :disabled)):hover {
+		background-color: var(--mantine-color-gray-0);
+	}
+
+	:where([data-mantine-color-scheme="dark"]) .m_220c80f2:where(:not([data-disabled], :disabled)):hover {
+		background-color: var(--mantine-color-dark-6);
+	}
+}

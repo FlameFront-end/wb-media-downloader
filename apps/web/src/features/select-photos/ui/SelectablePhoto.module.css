@@ -52,7 +52,7 @@
 	opacity: 0.45;
 }
 
-@media (hover: hover) {
+@media (hover: hover), (hover: none) and (pointer: fine) {
 	.tile:not([data-selected]):hover .image {
 		opacity: 0.75;
 	}
