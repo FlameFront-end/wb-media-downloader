@@ -1,10 +1,11 @@
 import { http, HttpResponse, type RequestHandler } from 'msw'
 
-import { photoBytes, playlistFixture, segmentFixtures } from './fixtures/hls'
+import { playlistFixture, segmentFixtures } from './fixtures/hls'
+import { photoBytes } from './fixtures/photos'
 import { cardFixture, KNOWN_NM, UPSTREAMS_URL, upstreamsFixture } from './fixtures/wb'
 
 const CARD_URL_PATTERN = /\/vol\d+\/part\d+\/(\d+)\/info\/ru\/card\.json$/
-const PHOTO_URL_PATTERN = /\/vol\d+\/part\d+\/(\d+)\/images\/big\/(\d+)\.webp$/
+const PHOTO_URL_PATTERN = /\/vol\d+\/part\d+\/\d+\/images\/big\/(\d+)\.webp$/
 const PLAYLIST_URL_PATTERN = /\/hls\/(?:1440p|1080p|720p)\/index\.m3u8$/
 const SEGMENT_URL_PATTERN = /\/hls\/(?:1440p|1080p|720p)\/(\d+)\.ts$/
 
@@ -26,9 +27,9 @@ export const handlers: RequestHandler[] = [
 	}),
 
 	http.get(PHOTO_URL_PATTERN, ({ request }) => {
-		const [, nm, index] = matchPath(request, PHOTO_URL_PATTERN) ?? []
+		const [, index] = matchPath(request, PHOTO_URL_PATTERN) ?? []
 
-		return HttpResponse.arrayBuffer(photoBytes(Number(nm), Number(index)).buffer, {
+		return HttpResponse.arrayBuffer(photoBytes(Number(index)).buffer, {
 			headers: { 'Content-Type': 'image/webp' }
 		})
 	}),

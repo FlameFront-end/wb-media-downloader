@@ -10,8 +10,3 @@ export const segmentFixtures: Record<string, Uint8Array<ArrayBuffer>> = {
 	'1': new Uint8Array(read('1.mpegts'))
 }
 export const PLAYLIST_DURATION_SECONDS = 2
-
-/** Body of a mocked photo: lets tests check which original ended up in the archive. */
-export function photoBytes(nm: number, index: number): Uint8Array<ArrayBuffer> {
-	return new TextEncoder().encode(`photo:${nm}:${index}`)
-}

@@ -1,4 +1,4 @@
-import { fetchBytes, isRetryableError } from '@/shared/api'
+import { fetchBytes, InvalidResponseError, isRetryableError } from '@/shared/api'
 import { isAbortError, mapWithConcurrency } from '@/shared/lib'
 
 export interface ZipEntry {
@@ -23,6 +23,23 @@ interface CreatePhotosZipOptions {
 	concurrency?: number
 	/** Extra attempts per photo on transient errors (network, 5xx, 429). */
 	retries?: number
+}
+
+function isWebp(bytes: Uint8Array): boolean {
+	if (bytes.byteLength < 20) {
+		return false
+	}
+
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+	const chunk = view.getUint32(12)
+	return (
+		view.getUint32(0) === 0x52494646 && // RIFF
+		view.getUint32(8) === 0x57454250 && // WEBP
+		view.getUint32(4, true) + 8 === bytes.byteLength &&
+		(chunk === 0x56503820 || chunk === 0x5650384c || chunk === 0x56503858) && // VP8, VP8L, VP8X
+		view.getUint32(16, true) > 0 &&
+		view.getUint32(16, true) <= bytes.byteLength - 20
+	)
 }
 
 async function fetchWithRetry(url: string, retries: number, signal: AbortSignal): Promise<Uint8Array> {
@@ -73,6 +90,9 @@ export async function createPhotosZip(
 
 				try {
 					bytes = await fetchWithRetry(entry.url, retries, workerSignal)
+					if (!isWebp(bytes)) {
+						throw new InvalidResponseError(entry.url, 'expected a WebP original')
+					}
 				} catch (error) {
 					throw isAbortError(error) ? error : new PhotoDownloadError(entry.filename, error)
 				}

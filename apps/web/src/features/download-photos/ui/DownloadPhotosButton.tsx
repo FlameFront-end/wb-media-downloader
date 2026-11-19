@@ -1,4 +1,5 @@
 import type { Product } from '@/entities/product'
+import { InvalidResponseError } from '@/shared/api'
 import { DownloadControl } from '@/shared/ui'
 
 import { PhotoDownloadError } from '../lib/create-photos-zip'
@@ -11,6 +12,10 @@ interface DownloadPhotosButtonProps {
 }
 
 function formatError(error: Error): string {
+	if (error instanceof PhotoDownloadError && error.cause instanceof InvalidResponseError) {
+		return `CDN вернул повреждённое фото ${error.filename}. Архив не сохранён.`
+	}
+
 	return error instanceof PhotoDownloadError
 		? `Не удалось скачать ${error.filename}. Попробуйте ещё раз.`
 		: 'Не удалось собрать архив. Попробуйте ещё раз.'

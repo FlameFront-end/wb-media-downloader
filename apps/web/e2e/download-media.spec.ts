@@ -39,8 +39,8 @@ test('downloads selected photos as a zip', async ({ page }) => {
 	expect(download.suggestedFilename()).toBe(`wb-${KNOWN_NM}-photos.zip`)
 	// Exact match: every selected original with its own bytes, nothing extra
 	expect(unzipSync(await downloaded(download))).toEqual({
-		[`wb-${KNOWN_NM}-01.webp`]: photoBytes(KNOWN_NM, 1),
-		[`wb-${KNOWN_NM}-03.webp`]: photoBytes(KNOWN_NM, 3)
+		[`wb-${KNOWN_NM}-01.webp`]: photoBytes(1),
+		[`wb-${KNOWN_NM}-03.webp`]: photoBytes(3)
 	})
 })
 
@@ -140,6 +140,21 @@ test('explains a missing preview and still lets the user download the original',
 		dialog.getByRole('button', { name: 'Скачать фото (1)' }).click()
 	])
 	expect(unzipSync(await downloaded(download))).toEqual({
-		[`wb-${KNOWN_NM}-01.webp`]: photoBytes(KNOWN_NM, 1)
+		[`wb-${KNOWN_NM}-01.webp`]: photoBytes(1)
 	})
+})
+
+test('reports a bad original and does not save an archive with HTML', async ({ page }) => {
+	await page.route('**/images/big/2.webp', route =>
+		route.fulfill({ status: 200, contentType: 'text/html', body: '<html>CDN error</html>' })
+	)
+	const dialog = await openGallery(page)
+	let downloads = 0
+	page.on('download', () => {
+		downloads++
+	})
+	await dialog.getByRole('button', { name: 'Скачать фото (3)' }).click()
+	await expect(dialog.getByRole('alert')).toContainText('CDN вернул повреждённое фото')
+	await expect(dialog.getByRole('alert')).toContainText(`wb-${KNOWN_NM}-02.webp`)
+	expect(downloads).toBe(0)
 })
