@@ -32,9 +32,9 @@ describe('HomePage while the modal chunk is still loading', () => {
 		renderWithProviders(<HomePage />)
 
 		await user.type(screen.getByLabelText('Артикул или ссылка WB'), String(KNOWN_NM))
-		await user.click(screen.getByRole('button', { name: 'Скачать фото' }))
+		await user.click(screen.getByRole('button', { name: 'Найти товар' }))
 
-		const submit = screen.getByRole('button', { name: 'Скачать фото' })
+		const submit = screen.getByRole('button', { name: 'Найти товар' })
 		expect(submit).toHaveAttribute('data-loading')
 		expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 

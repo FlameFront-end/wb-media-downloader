@@ -45,7 +45,7 @@ async function openModal(article: number) {
 	const user = userEvent.setup()
 	renderWithProviders(<HomePage />)
 	await user.type(screen.getByLabelText('Артикул или ссылка WB'), String(article))
-	await user.click(screen.getByRole('button', { name: 'Скачать фото' }))
+	await user.click(screen.getByRole('button', { name: 'Найти товар' }))
 
 	return user
 }
@@ -58,7 +58,7 @@ describe('selective Mantine styles', () => {
 	it('cover the form with a validation error', async () => {
 		const user = userEvent.setup()
 		renderWithProviders(<HomePage />)
-		await user.click(screen.getByRole('button', { name: 'Скачать фото' }))
+		await user.click(screen.getByRole('button', { name: 'Найти товар' }))
 
 		expectStylesFor(renderedMantineClasses())
 	})

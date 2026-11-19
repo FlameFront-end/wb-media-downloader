@@ -6,7 +6,7 @@ const MODAL_CHUNK = '**/assets/product-media-modal-*.js'
 
 async function openArticle(page: Page) {
 	await page.getByLabel('Артикул или ссылка WB').fill(String(KNOWN_NM))
-	await page.getByRole('button', { name: 'Скачать фото' }).click()
+	await page.getByRole('button', { name: 'Найти товар' }).click()
 }
 
 const gallery = (page: Page) => page.getByRole('dialog').getByRole('heading', { name: cardFixture.imt_name })
@@ -42,7 +42,7 @@ test.describe('modal chunk failure', () => {
 		await page.unroute(MODAL_CHUNK)
 		await loadError(page).getByRole('button', { name: 'Закрыть' }).click()
 		await expect(loadError(page)).toHaveCount(0)
-		await page.getByRole('button', { name: 'Скачать фото' }).click()
+		await page.getByRole('button', { name: 'Найти товар' }).click()
 		await expect(reloadButton(page)).toBeVisible()
 
 		await Promise.all([page.waitForEvent('load'), reloadButton(page).click()])

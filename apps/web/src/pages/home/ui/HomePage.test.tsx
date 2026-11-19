@@ -14,7 +14,7 @@ function setup() {
 	return {
 		user,
 		input: screen.getByLabelText('Артикул или ссылка WB'),
-		submit: screen.getByRole('button', { name: 'Скачать фото' })
+		submit: screen.getByRole('button', { name: 'Найти товар' })
 	}
 }
 

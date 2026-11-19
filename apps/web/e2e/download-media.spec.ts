@@ -11,7 +11,7 @@ import { inspectMp4 } from './mp4.ts'
 async function openGallery(page: Page) {
 	await page.goto('/')
 	await page.getByLabel('Артикул или ссылка WB').fill(String(KNOWN_NM))
-	await page.getByRole('button', { name: 'Скачать фото' }).click()
+	await page.getByRole('button', { name: 'Найти товар' }).click()
 
 	const dialog = page.getByRole('dialog')
 	await expect(dialog.getByRole('heading', { name: cardFixture.imt_name })).toBeVisible()

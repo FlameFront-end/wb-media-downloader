@@ -9,7 +9,7 @@ for (const [width, stacked] of [
 		await page.goto('/')
 
 		const input = page.getByRole('textbox', { name: 'Артикул или ссылка WB' })
-		const submit = page.getByRole('button', { name: 'Скачать фото', exact: true })
+		const submit = page.getByRole('button', { name: 'Найти товар', exact: true })
 		await expect(input).toHaveAttribute('inputmode', 'url')
 		const inputBox = await input.boundingBox()
 		const submitBox = await submit.boundingBox()

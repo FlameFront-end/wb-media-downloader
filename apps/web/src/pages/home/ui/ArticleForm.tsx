@@ -34,6 +34,7 @@ export function ArticleForm({ onSubmit, onIntent, loading = false }: ArticleForm
 	return (
 		<form onSubmit={handleSubmit} noValidate>
 			<TextInput
+				size='md'
 				label='Артикул или ссылка WB'
 				placeholder='Например, 604174866'
 				value={value}
@@ -51,8 +52,8 @@ export function ArticleForm({ onSubmit, onIntent, loading = false }: ArticleForm
 				inputContainer={input => (
 					<Box className={classes.controls}>
 						{input}
-						<Button type='submit' loading={loading} onPointerEnter={onIntent}>
-							Скачать фото
+						<Button type='submit' size='md' loading={loading} onPointerEnter={onIntent}>
+							Найти товар
 						</Button>
 					</Box>
 				)}

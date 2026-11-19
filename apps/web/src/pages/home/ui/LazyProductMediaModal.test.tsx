@@ -19,7 +19,7 @@ async function openArticle() {
 	const user = userEvent.setup()
 	renderWithProviders(<HomePage />)
 	await user.type(screen.getByLabelText('Артикул или ссылка WB'), String(KNOWN_NM))
-	await user.click(screen.getByRole('button', { name: 'Скачать фото' }))
+	await user.click(screen.getByRole('button', { name: 'Найти товар' }))
 
 	return user
 }
@@ -55,7 +55,7 @@ describe('LazyProductMediaModal when the modal chunk fails to load', () => {
 		await user.click(within(await findLoadError()).getByRole('button', { name: 'Закрыть' }))
 		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 
-		await user.click(screen.getByRole('button', { name: 'Скачать фото' }))
+		await user.click(screen.getByRole('button', { name: 'Найти товар' }))
 		expect(await findLoadError()).toBeInTheDocument()
 	})
 })

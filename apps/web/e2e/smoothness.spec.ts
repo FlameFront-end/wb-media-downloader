@@ -5,7 +5,7 @@ import { cardFixture, expect, KNOWN_NM, test } from './fixtures.ts'
 const LONG_PRODUCT_NAME = 'Очень длинное название товара для проверки переноса заголовка в галерее на узком экране'
 const CARD_URL = new RegExp(`/${KNOWN_NM}/info/ru/card\\.json$`)
 
-const submitButton = (page: Page) => page.getByRole('button', { name: 'Скачать фото', exact: true })
+const submitButton = (page: Page) => page.getByRole('button', { name: 'Найти товар', exact: true })
 
 async function submitArticle(page: Page) {
 	await page.getByLabel('Артикул или ссылка WB').fill(String(KNOWN_NM))

@@ -3,9 +3,10 @@
 	grid-template-columns: minmax(0, 1fr);
 	gap: var(--mantine-spacing-sm);
 	align-items: start;
+	margin-top: var(--mantine-spacing-xs);
 }
 
-@media (min-width: 24em) {
+@media (min-width: 30em) {
 	.controls {
 		grid-template-columns: minmax(0, 1fr) auto;
 	}

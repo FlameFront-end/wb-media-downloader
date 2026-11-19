@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
 
-import { Container, Stack, Text, Title } from '@mantine/core'
+import { Box, Container, Stack, Text, Title } from '@mantine/core'
 
 import { loadProductMediaModal, preloadProductMediaModal } from '../lib/load-product-media-modal'
 
 import { ArticleForm } from './ArticleForm'
+import classes from './HomePage.module.css'
 import { LazyProductMediaModal } from './LazyProductMediaModal'
 
 export function HomePage() {
@@ -39,16 +40,22 @@ export function HomePage() {
 	}
 
 	return (
-		<Container size='sm' py='xl'>
-			<Stack gap='lg'>
-				<Stack gap={4}>
-					<Title order={1} fz={{ base: 'h2', sm: 'h1' }}>
-						WB Media Downloader
-					</Title>
-					<Text>Скачивайте фото и видео с карточек Wildberries.</Text>
+		<Box className={classes.page}>
+			<Container size='xs' py='xl' className={classes.hero}>
+				<Stack gap='xl'>
+					<Stack gap='sm'>
+						<Text className={classes.badge}>Wildberries</Text>
+						<Title order={1} fz={{ base: 28, sm: 38 }} className={classes.title}>
+							WB Media Downloader
+						</Title>
+						<Text className={classes.lead}>Скачивайте фото и видео с карточек Wildberries.</Text>
+					</Stack>
+					<Box className={classes.card}>
+						<ArticleForm onIntent={preloadProductMediaModal} loading={opening} onSubmit={open} />
+					</Box>
+					<Text className={classes.note}>Фото сохраняются в ZIP, видео — в MP4.</Text>
 				</Stack>
-				<ArticleForm onIntent={preloadProductMediaModal} loading={opening} onSubmit={open} />
-			</Stack>
+			</Container>
 			{modalUsed && (
 				<LazyProductMediaModal
 					productId={productId}
@@ -61,6 +68,6 @@ export function HomePage() {
 					}}
 				/>
 			)}
-		</Container>
+		</Box>
 	)
 }
