@@ -1,6 +1,8 @@
 .tile {
 	position: relative;
 	display: block;
+	align-self: start;
+	width: 100%;
 	border-radius: var(--mantine-radius-sm);
 	cursor: pointer;
 	isolation: isolate;

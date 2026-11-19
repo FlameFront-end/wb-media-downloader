@@ -6,6 +6,11 @@
  * Class names match @mantine/core Button.css and CloseButton.css.
  */
 @media (hover: none) and (pointer: fine) {
+	.m_77c9d27d:where(:not([data-loading], :disabled, [data-disabled])),
+	.m_220c80f2:where(:not([data-disabled], :disabled)) {
+		cursor: pointer;
+	}
+
 	.m_77c9d27d:hover:where(:not([data-loading], :disabled, [data-disabled])) {
 		background-color: var(--button-hover, var(--mantine-primary-color-filled-hover));
 		color: var(--button-hover-color, var(--button-color));

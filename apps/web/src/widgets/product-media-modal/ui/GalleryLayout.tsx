@@ -14,35 +14,47 @@ interface GalleryLayoutProps {
 	footer: ReactNode
 	/** Skeleton state: announced as busy, no appear animation. */
 	loading?: boolean
+	/** Fade in gallery body only after a loading phase, not when data was already cached. */
+	contentAppear?: boolean
 }
 
 /**
  * One layout for the gallery and its skeleton: the loaded card lands exactly
  * where the placeholders were, so nothing jumps when data arrives.
  */
-export function GalleryLayout({ title, toolbar, children, grid = true, footer, loading = false }: GalleryLayoutProps) {
+export function GalleryLayout({
+	title,
+	toolbar,
+	children,
+	grid = true,
+	footer,
+	loading = false,
+	contentAppear = false
+}: GalleryLayoutProps) {
 	return (
 		<Stack
 			gap='md'
-			className={loading ? undefined : classes.root}
+			className={classes.layout}
 			aria-busy={loading || undefined}
 			aria-label={loading ? 'Загрузка карточки' : undefined}
 		>
-			{title}
-			{toolbar}
-			{grid ? (
-				<SimpleGrid cols={{ base: 2, xs: 3, sm: 4 }} spacing='sm'>
-					{children}
-				</SimpleGrid>
-			) : (
-				children
-			)}
-			{/* Sticks to the bottom of the scrolling modal: downloads stay in reach in a long gallery */}
+			<Stack
+				gap='md'
+				className={contentAppear ? `${classes.scroll} ${classes.content}` : classes.scroll}
+				data-loading={loading || undefined}
+			>
+				<Box className={classes.title}>{title}</Box>
+				{toolbar ? <Box className={classes.toolbar}>{toolbar}</Box> : null}
+				{grid ? (
+					<SimpleGrid className={classes.grid} cols={{ base: 2, xs: 3, sm: 4 }} spacing='sm'>
+						{children}
+					</SimpleGrid>
+				) : (
+					children
+				)}
+			</Stack>
 			<Box className={classes.footer}>
-				{/* Two fixed columns: a growing status in one never pushes the other button around */}
-				<SimpleGrid cols={2} spacing='md'>
-					{footer}
-				</SimpleGrid>
+				<Box className={classes.actions}>{footer}</Box>
 			</Box>
 		</Stack>
 	)

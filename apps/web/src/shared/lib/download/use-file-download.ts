@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { useMutation, type MutationKey } from '@tanstack/react-query'
 
@@ -53,7 +53,7 @@ export interface FileDownload extends DownloadState {
  */
 const SAVED_HINT_MS = 4000
 
-export function useFileDownload(mutationKey: MutationKey): FileDownload {
+export function useFileDownload(mutationKey: MutationKey, active: boolean): FileDownload {
 	const controllerRef = useRef<AbortController | null>(null)
 	const savedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 	const [progress, setProgress] = useState<DownloadProgress | null>(null)
@@ -64,7 +64,14 @@ export function useFileDownload(mutationKey: MutationKey): FileDownload {
 		setIsSaved(false)
 	}, [])
 
-	// Unmounting (closing the modal) stops downloads nobody will save
+	// Closing starts before unmount when the dialog animates out.
+	useLayoutEffect(() => {
+		if (!active) {
+			controllerRef.current?.abort()
+		}
+	}, [active])
+
+	// Also stop downloads if the gallery unmounts directly.
 	useEffect(
 		() => () => {
 			controllerRef.current?.abort()
@@ -107,13 +114,16 @@ export function useFileDownload(mutationKey: MutationKey): FileDownload {
 
 	const start = useCallback(
 		(task: DownloadTask) => {
+			if (!active) {
+				return
+			}
 			hideSaved()
 			controllerRef.current?.abort()
 			const controller = new AbortController()
 			controllerRef.current = controller
 			mutate({ task, signal: controller.signal })
 		},
-		[mutate, hideSaved]
+		[active, mutate, hideSaved]
 	)
 
 	const cancel = useCallback(() => {

@@ -6,6 +6,7 @@ import { useDownloadPhotos } from '../model/use-download-photos'
 
 interface DownloadPhotosButtonProps {
 	product: Product
+	active: boolean
 	selectedIndexes: readonly number[]
 }
 
@@ -15,8 +16,8 @@ function formatError(error: Error): string {
 		: 'Не удалось собрать архив. Попробуйте ещё раз.'
 }
 
-export function DownloadPhotosButton({ product, selectedIndexes }: DownloadPhotosButtonProps) {
-	const { downloadPhotos, ...download } = useDownloadPhotos(product)
+export function DownloadPhotosButton({ product, active, selectedIndexes }: DownloadPhotosButtonProps) {
+	const { downloadPhotos, ...download } = useDownloadPhotos(product, active)
 	const count = selectedIndexes.length
 
 	return (

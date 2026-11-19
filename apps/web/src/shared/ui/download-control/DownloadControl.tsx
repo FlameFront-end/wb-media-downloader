@@ -17,8 +17,6 @@ interface DownloadControlProps {
 	formatError: (error: Error) => string
 	/** Shown for a few seconds after the file was saved. */
 	savedMessage: string
-	/** Side of its column the control sticks to. */
-	align?: 'start' | 'end'
 }
 
 const COLLAPSE_MS = 180
@@ -62,8 +60,7 @@ export function DownloadControl({
 	progressLabel,
 	formatProgress,
 	formatError,
-	savedMessage,
-	align = 'start'
+	savedMessage
 }: DownloadControlProps) {
 	// While running show live values; while the status collapses keep the last ones on screen
 	const lastProgress = useLastValue(progress)
@@ -81,7 +78,7 @@ export function DownloadControl({
 	return (
 		// The button keeps its size (the loader replaces the label) and status lines open below it,
 		// so starting a download never reflows the bar
-		<Stack gap={0} align={align === 'end' ? 'flex-end' : 'flex-start'} w='100%' miw={0}>
+		<Stack gap={0} align='flex-start' w='100%' miw={0}>
 			<Button variant={variant} loading={isPending} disabled={disabled} onClick={onStart}>
 				{label}
 			</Button>
@@ -103,14 +100,7 @@ export function DownloadControl({
 						/>
 					)}
 					<Group gap='xs' justify='space-between' wrap='nowrap'>
-						<Text
-							size='xs'
-							c='dimmed'
-							flex={1}
-							miw={0}
-							// Counters stay on one line; only the longer offline hint may wrap
-							style={isPaused ? undefined : { whiteSpace: 'nowrap' }}
-						>
+						<Text size='xs' c='dimmed' flex={1} miw={0}>
 							{statusText}
 						</Text>
 						<Button variant='subtle' color='gray' size='compact-xs' onClick={cancel}>

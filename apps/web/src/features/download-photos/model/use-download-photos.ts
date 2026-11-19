@@ -9,8 +9,8 @@ export function photoFilename(productId: number, index: number): string {
 	return `wb-${productId}-${String(index).padStart(2, '0')}.webp`
 }
 
-export function useDownloadPhotos(product: Product) {
-	const { start, ...download } = useFileDownload(['download-photos', product.id])
+export function useDownloadPhotos(product: Product, active: boolean) {
+	const { start, ...download } = useFileDownload(['download-photos', product.id], active)
 
 	const downloadPhotos = useCallback(
 		(indexes: readonly number[]) => {

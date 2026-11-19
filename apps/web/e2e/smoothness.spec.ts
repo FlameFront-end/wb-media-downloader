@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { cardFixture, expect, KNOWN_NM, test } from './fixtures.ts'
 
+const LONG_PRODUCT_NAME = 'Очень длинное название товара для проверки переноса заголовка в галерее на узком экране'
 const CARD_URL = new RegExp(`/${KNOWN_NM}/info/ru/card\\.json$`)
 
 const submitButton = (page: Page) => page.getByRole('button', { name: 'Скачать фото', exact: true })
@@ -57,11 +58,18 @@ test.describe('modal transition', () => {
 })
 
 for (const [device, viewport] of [
+	['narrow phone', { width: 320, height: 780 }],
 	['phone', { width: 390, height: 780 }],
 	['desktop', { width: 1280, height: 800 }]
 ] as const) {
 	test(`the loaded gallery takes the place of its skeleton without a jump on ${device}`, async ({ page }) => {
 		await page.setViewportSize(viewport)
+		await page.route(CARD_URL, route =>
+			route.fulfill({
+				json: { ...cardFixture, imt_name: LONG_PRODUCT_NAME },
+				headers: { 'Access-Control-Allow-Origin': '*' }
+			})
+		)
 		const releaseCard = await holdRoute(page, CARD_URL)
 		await page.goto('/')
 		await submitArticle(page)
@@ -73,11 +81,11 @@ for (const [device, viewport] of [
 
 		releaseCard()
 		const dialog = page.getByRole('dialog')
-		await expect(dialog.getByRole('heading', { name: cardFixture.imt_name })).toBeVisible()
+		await expect(dialog.getByRole('heading', { name: LONG_PRODUCT_NAME })).toBeVisible()
 		await animationsSettled(page)
 		const tile = await dialog
 			.locator('label')
-			.filter({ has: page.getByRole('checkbox', { name: 'Фото 1' }) })
+			.filter({ has: page.getByRole('checkbox', { name: 'Фото 1', exact: true }) })
 			.boundingBox()
 
 		expect(placeholder).not.toBeNull()
@@ -137,4 +145,58 @@ test('a finished download says the file was saved', async ({ page }) => {
 
 	await expect(dialog.getByRole('status')).toHaveText('Архив сохранён')
 	await expect(dialog.getByRole('status')).toHaveCount(0, { timeout: 6000 })
+})
+
+test('download controls and the progress label fit a 320px screen', async ({ page }) => {
+	await page.setViewportSize({ width: 320, height: 780 })
+	const releasePhotos = await holdRoute(page, '**/images/big/**')
+	await page.goto('/')
+	await submitArticle(page)
+	const dialog = page.getByRole('dialog')
+	const photos = dialog.getByRole('button', { name: 'Скачать фото (3)' })
+	const video = dialog.getByRole('button', { name: 'Скачать видео' })
+
+	const photoBox = await photos.boundingBox()
+	const videoBox = await video.boundingBox()
+	if (!photoBox || !videoBox) {
+		throw new Error('Both download buttons must have a visible bounding box')
+	}
+	expect(videoBox.y).toBeGreaterThanOrEqual(photoBox.y + photoBox.height)
+
+	await photos.click()
+	const progress = dialog.getByText('Загружено 0 из 3', { exact: true })
+	const cancel = dialog.getByRole('button', { name: 'Отмена' })
+	const labelRight = await progress.evaluate(label => {
+		const range = document.createRange()
+		range.selectNodeContents(label)
+		return range.getBoundingClientRect().right
+	})
+	const cancelBox = await cancel.boundingBox()
+	if (!cancelBox) {
+		throw new Error('The cancel button must have a visible bounding box')
+	}
+	expect(labelRight).toBeLessThanOrEqual(cancelBox.x)
+
+	await cancel.click()
+	releasePhotos()
+})
+
+test('closing the modal keeps the gallery in place during the exit transition', async ({ page }) => {
+	await page.goto('/')
+	await submitArticle(page)
+	const dialog = page.getByRole('dialog')
+	await expect(dialog.getByRole('heading', { name: cardFixture.imt_name })).toBeVisible()
+	await animationsSettled(page)
+
+	const galleryDuringExit = await dialog.evaluate(node => {
+		node.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+		return new Promise<boolean>(resolve => {
+			requestAnimationFrame(() => {
+				resolve(Boolean(node.querySelector('[inert] input[type=checkbox]')))
+			})
+		})
+	})
+
+	expect(galleryDuringExit).toBe(true)
+	await expect(dialog).toHaveCount(0)
 })

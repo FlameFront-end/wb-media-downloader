@@ -4,10 +4,11 @@ import { useQuery } from '@tanstack/react-query'
 import { ProductNotFoundError, productQueries } from '@/entities/product'
 
 import { ProductGallery } from './ProductGallery'
-import { ProductGallerySkeleton } from './ProductGallerySkeleton'
+import classes from './ProductMediaModal.module.css'
 
 interface ProductMediaContentProps {
 	productId: number
+	active: boolean
 }
 
 interface RetryButtonProps {
@@ -23,19 +24,18 @@ function RetryButton({ loading, onRetry }: RetryButtonProps) {
 	)
 }
 
-export function ProductMediaContent({ productId }: ProductMediaContentProps) {
+export function ProductMediaContent({ productId, active }: ProductMediaContentProps) {
 	const { data: product, error, isPending, isFetching, refetch } = useQuery(productQueries.detail(productId))
 
 	const retry = () => {
 		void refetch()
 	}
 
-	// Keep the gallery (and its selection) mounted while cached data exists:
-	// a failed background refetch is reported next to it, not instead of it.
-	if (product) {
+	// One gallery instance for loading → loaded (and cache): the footer stays mounted.
+	if (product || isPending) {
 		return (
-			<Stack gap='md'>
-				{error && (
+			<Stack gap='md' className={classes.fill} inert={!active}>
+				{product && error && (
 					<Alert color='red' title='Не удалось обновить карточку'>
 						<Stack gap='xs' align='flex-start'>
 							<Text size='sm'>Показаны ранее загруженные данные.</Text>
@@ -43,13 +43,9 @@ export function ProductMediaContent({ productId }: ProductMediaContentProps) {
 						</Stack>
 					</Alert>
 				)}
-				<ProductGallery key={product.id} product={product} />
+				<ProductGallery product={product} active={active} />
 			</Stack>
 		)
-	}
-
-	if (isPending) {
-		return <ProductGallerySkeleton />
 	}
 
 	if (error instanceof ProductNotFoundError) {

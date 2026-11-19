@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { Modal, type ModalProps } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 
@@ -28,6 +30,17 @@ const DESKTOP_TRANSITION: ModalProps['transitionProps'] = {
 }
 
 export function ProductMediaModal({ productId, onClose, onExited }: ProductMediaModalProps) {
+	// Keep the last gallery visible until Mantine unmounts the closing dialog.
+	const [gallery, setGallery] = useState({ productId, displayedId: productId, opening: 0 })
+	if (gallery.productId !== productId) {
+		setGallery({
+			productId,
+			displayedId: productId ?? gallery.displayedId,
+			opening: productId === null ? gallery.opening : gallery.opening + 1
+		})
+	}
+	const opened = productId !== null
+
 	// Read synchronously, so the modal does not open as a window and then jump to full screen
 	const isPhone = useMediaQuery(PHONE_QUERY, false, { getInitialValueInEffect: false })
 	// Mantine reads reduced motion in an effect, too late for a modal that mounts already open
@@ -36,15 +49,19 @@ export function ProductMediaModal({ productId, onClose, onExited }: ProductMedia
 
 	return (
 		<Modal
-			opened={productId !== null}
+			opened={opened}
 			onClose={onClose}
 			title='Фото и видео товара'
 			size='xl'
-			// Anchored to the top, not centered: when the card replaces the skeleton the modal only
-			// grows downwards, nothing above the photos moves
+			// Keep the dialog footprint stable while the card loads.
 			yOffset='6dvh'
 			fullScreen={isPhone}
-			classNames={{ title: classes.title, header: classes.header, body: classes.body }}
+			classNames={{
+				title: classes.title,
+				header: classes.header,
+				content: classes.content,
+				body: classes.body
+			}}
 			// Dense, slightly blurred backdrop: the page behind does not compete with the gallery
 			overlayProps={{ backgroundOpacity: 0.65, blur: 3 }}
 			// Phones: a sheet sliding up; wider screens: a short pop from the center
@@ -53,7 +70,9 @@ export function ProductMediaModal({ productId, onClose, onExited }: ProductMedia
 			// Focus goes back to the trigger via onExited: Mantine may miss it when the modal mounts open
 			returnFocus={false}
 		>
-			{productId !== null && <ProductMediaContent key={productId} productId={productId} />}
+			{gallery.displayedId !== null && (
+				<ProductMediaContent key={gallery.opening} productId={gallery.displayedId} active={opened} />
+			)}
 		</Modal>
 	)
 }

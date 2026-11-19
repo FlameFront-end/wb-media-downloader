@@ -5,8 +5,8 @@ import { useFileDownload } from '@/shared/lib'
 
 import { downloadProductVideo } from '../lib/download-product-video'
 
-export function useDownloadVideo(product: Product) {
-	const { start, ...download } = useFileDownload(['download-video', product.id])
+export function useDownloadVideo(product: Product, active: boolean) {
+	const { start, ...download } = useFileDownload(['download-video', product.id], active)
 
 	const downloadVideo = useCallback(() => {
 		// Resolve sources now: the cached card may change before a paused download runs

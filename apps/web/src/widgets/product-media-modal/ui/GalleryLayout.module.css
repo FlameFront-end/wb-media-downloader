@@ -1,20 +1,46 @@
-/* Content fades in over the skeleton it replaces: same layout, only the pixels change */
-.root {
-	animation: gallery-appear 180ms ease-out both;
+.layout {
+	flex: 1;
+	min-height: 0;
 }
 
-@keyframes gallery-appear {
+/* Photos scroll here; while loading the third row is clipped instead of adding a scrollbar */
+.scroll {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+}
+
+.scroll[data-loading] {
+	overflow: hidden;
+}
+
+.grid {
+	align-items: start;
+}
+
+.title {
+	min-height: calc(2 * var(--mantine-h4-font-size) * var(--mantine-h4-line-height));
+	flex-shrink: 0;
+}
+
+.toolbar {
+	min-height: calc(var(--mantine-spacing-sm) + var(--mantine-checkbox-size, var(--mantine-spacing-md)));
+}
+
+/* Fade in the gallery body independently of the footer. */
+.content {
+	animation: gallery-content-appear 180ms ease-out both;
+}
+
+@keyframes gallery-content-appear {
 	from {
 		opacity: 0;
 	}
 }
 
-/* Full-bleed bar at the bottom of the modal body (the modal content is the scroll container) */
+/* The footer sits outside the scroll area. */
 .footer {
-	position: sticky;
-	bottom: 0;
-	/* Above tile checkboxes (z-index 1 inside each photo) while the grid scrolls underneath */
-	z-index: var(--mantine-z-index-app);
+	flex-shrink: 0;
 	margin-inline: calc(var(--mb-padding, var(--mantine-spacing-md)) * -1);
 	margin-bottom: calc(var(--mb-padding, var(--mantine-spacing-md)) * -1);
 	padding: var(--mantine-spacing-sm) var(--mb-padding, var(--mantine-spacing-md));
@@ -23,8 +49,25 @@
 	background-color: var(--mantine-color-body);
 }
 
+.actions {
+	display: grid;
+	gap: var(--mantine-spacing-sm);
+	grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 24em) {
+	.actions {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.actions > :last-child {
+		align-items: flex-end;
+		justify-self: end;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
-	.root {
+	.content {
 		animation: none;
 	}
 }
