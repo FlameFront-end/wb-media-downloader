@@ -1,0 +1,34 @@
+import { useState, type ReactNode } from 'react'
+
+import { MantineProvider } from '@mantine/core'
+import { QueryClientProvider, QueryErrorResetBoundary } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { ErrorBoundary } from 'react-error-boundary'
+
+import { ErrorFallback } from '@/shared/ui'
+
+import { createQueryClient } from '../query/query-client'
+import { theme } from '../styles/theme'
+
+interface AppProvidersProps {
+	children: ReactNode
+}
+
+export function AppProviders({ children }: AppProvidersProps) {
+	const [queryClient] = useState(createQueryClient)
+
+	return (
+		<MantineProvider theme={theme} defaultColorScheme='auto'>
+			<QueryClientProvider client={queryClient}>
+				<QueryErrorResetBoundary>
+					{({ reset }) => (
+						<ErrorBoundary FallbackComponent={ErrorFallback} onReset={reset}>
+							{children}
+						</ErrorBoundary>
+					)}
+				</QueryErrorResetBoundary>
+				<ReactQueryDevtools buttonPosition='bottom-left' />
+			</QueryClientProvider>
+		</MantineProvider>
+	)
+}

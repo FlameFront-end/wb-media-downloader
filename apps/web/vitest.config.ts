@@ -14,7 +14,7 @@ export default mergeConfig(
 			coverage: {
 				provider: 'v8',
 				include: ['src/**/*.{ts,tsx}'],
-				exclude: ['src/**/*.test.{ts,tsx}', 'src/main.tsx'],
+				exclude: ['src/**/*.test.{ts,tsx}', 'src/app/entrypoint/main.tsx'],
 				reporter: ['text', 'html', 'lcov', 'json-summary']
 			}
 		}

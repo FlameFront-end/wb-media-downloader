@@ -19,6 +19,7 @@
 		"format:check": "prettier --check .",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",
+		"lint:arch": "npm run lint:arch --workspaces --if-present",
 		"prepare": "husky"
 	},
 	"devDependencies": {
