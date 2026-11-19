@@ -50,24 +50,26 @@ export function HomePage() {
 						</Title>
 						<Text className={classes.lead}>Скачивайте фото и видео с карточек Wildberries.</Text>
 					</Stack>
-					<Box className={classes.card}>
-						<ArticleForm onIntent={preloadProductMediaModal} loading={opening} onSubmit={open} />
-					</Box>
+					<Stack gap='sm'>
+						<Box className={classes.card}>
+							<ArticleForm onIntent={preloadProductMediaModal} loading={opening} onSubmit={open} />
+						</Box>
+						{modalUsed && (
+							<LazyProductMediaModal
+								productId={productId}
+								onClose={() => {
+									setProductId(null)
+								}}
+								onExited={() => {
+									triggerRef.current?.focus()
+									triggerRef.current = null
+								}}
+							/>
+						)}
+					</Stack>
 					<Text className={classes.note}>Фото сохраняются в ZIP, видео — в MP4.</Text>
 				</Stack>
 			</Container>
-			{modalUsed && (
-				<LazyProductMediaModal
-					productId={productId}
-					onClose={() => {
-						setProductId(null)
-					}}
-					onExited={() => {
-						triggerRef.current?.focus()
-						triggerRef.current = null
-					}}
-				/>
-			)}
 		</Box>
 	)
 }

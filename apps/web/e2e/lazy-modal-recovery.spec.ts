@@ -32,6 +32,11 @@ test.describe('modal chunk failure', () => {
 		await expect(reloadButton(page)).toBeVisible()
 		await expect(page.getByText('Что-то пошло не так')).toHaveCount(0)
 		await expect(page.getByLabel('Артикул или ссылка WB')).toBeEditable()
+
+		const form = await page.locator('form').boundingBox()
+		const alert = await loadError(page).boundingBox()
+		expect(form && alert && alert.y >= form.y + form.height).toBe(true)
+		expect((alert?.x ?? 0) + (alert?.width ?? 0) / 2).toBeCloseTo((form?.x ?? 0) + (form?.width ?? 0) / 2)
 	})
 
 	test('page reload recovers once the network is back', async ({ page }) => {
@@ -42,6 +47,7 @@ test.describe('modal chunk failure', () => {
 		await page.unroute(MODAL_CHUNK)
 		await loadError(page).getByRole('button', { name: 'Закрыть' }).click()
 		await expect(loadError(page)).toHaveCount(0)
+		await expect(page.getByRole('button', { name: 'Найти товар' })).toBeFocused()
 		await page.getByRole('button', { name: 'Найти товар' }).click()
 		await expect(reloadButton(page)).toBeVisible()
 

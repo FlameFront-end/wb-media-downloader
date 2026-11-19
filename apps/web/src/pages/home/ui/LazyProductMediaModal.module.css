@@ -1,0 +1,25 @@
+.error {
+	text-align: start;
+	background: light-dark(var(--mantine-color-red-0), rgb(224 49 49 / 0.12));
+	border-color: light-dark(var(--mantine-color-red-2), rgb(255 135 135 / 0.24));
+	color: var(--mantine-color-text);
+}
+
+.body {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.reload {
+	max-width: 100%;
+	height: auto;
+	min-height: var(--button-height);
+	padding: var(--mantine-spacing-xs);
+}
+
+.reloadLabel {
+	white-space: normal;
+	height: auto;
+	text-align: center;
+	line-height: 1.3;
+}
