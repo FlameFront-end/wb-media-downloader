@@ -3,11 +3,14 @@
 	min-height: 0;
 }
 
-/* Photos scroll here; while loading the third row is clipped instead of adding a scrollbar */
+/* Leave room for the photo focus ring without shifting the grid. */
 .scroll {
 	flex: 1;
 	min-height: 0;
-	overflow: auto;
+	margin-inline: -4px;
+	padding-inline: 4px;
+	overflow-x: hidden;
+	overflow-y: auto;
 }
 
 .scroll[data-loading] {
@@ -25,6 +28,7 @@
 
 .headerSlots {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: var(--mantine-spacing-xs);
 }
 

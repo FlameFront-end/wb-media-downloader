@@ -32,6 +32,19 @@ for (const [device, viewport] of [
 
 		// A photo in the middle: without the sticky bar the buttons are far below it
 		const photo = dialog.getByRole('checkbox', { name: 'Фото 7', exact: true })
+		const lastPhoto = dialog.getByRole('checkbox', { name: `Фото ${PHOTO_COUNT}`, exact: true })
+		await lastPhoto.scrollIntoViewIfNeeded()
+		const scroll = await lastPhoto.evaluate(tile => {
+			for (let parent = tile.parentElement; parent; parent = parent.parentElement) {
+				if (getComputedStyle(parent).overflowY === 'auto' && parent.scrollHeight > parent.clientHeight) {
+					return { horizontalOverflow: parent.scrollWidth - parent.clientWidth, top: parent.scrollTop }
+				}
+			}
+			return null
+		})
+		expect(scroll?.horizontalOverflow).toBe(0)
+		expect(scroll?.top).toBeGreaterThan(0)
+
 		await photo.scrollIntoViewIfNeeded()
 		await photo.uncheck()
 
