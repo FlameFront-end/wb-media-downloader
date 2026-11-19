@@ -1,0 +1,28 @@
+.tile {
+	position: relative;
+	display: block;
+	overflow: hidden;
+	border-radius: var(--mantine-radius-sm);
+	outline: 2px solid transparent;
+	outline-offset: -2px;
+	cursor: pointer;
+	transition:
+		outline-color 120ms ease,
+		opacity 120ms ease;
+	opacity: 0.55;
+}
+
+.tile[data-selected] {
+	outline-color: var(--mantine-primary-color-filled);
+	opacity: 1;
+}
+
+.tile:focus-within {
+	outline-color: var(--mantine-primary-color-light-hover);
+}
+
+.checkbox {
+	position: absolute;
+	top: var(--mantine-spacing-xs);
+	left: var(--mantine-spacing-xs);
+}
