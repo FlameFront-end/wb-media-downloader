@@ -32,7 +32,13 @@ function formatError(error: Error): string {
 
 export function DownloadVideoButton({ product, active }: DownloadVideoButtonProps) {
 	const { downloadVideo, ...download } = useDownloadVideo(product, active)
-	const hasVideo = product.video !== null
+	const hasVideo = product.videoAvailability === 'available'
+	const hints = {
+		available: undefined,
+		absent: 'У товара нет видео',
+		unknown: 'В карточке нет информации о видео',
+		unavailable: 'Видео недоступно на CDN'
+	}
 
 	return (
 		<DownloadControl
@@ -40,7 +46,7 @@ export function DownloadVideoButton({ product, active }: DownloadVideoButtonProp
 			label='Скачать видео'
 			variant={hasVideo ? 'light' : 'default'}
 			disabled={!hasVideo}
-			hint={hasVideo ? undefined : 'У товара нет видео'}
+			hint={hints[product.videoAvailability]}
 			onStart={downloadVideo}
 			progressLabel='Прогресс скачивания видео'
 			formatProgress={({ done, total, bytesReceived }) => {

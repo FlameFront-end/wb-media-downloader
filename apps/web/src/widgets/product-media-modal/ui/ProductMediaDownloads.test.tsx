@@ -324,7 +324,7 @@ describe('ProductMediaModal downloads', () => {
 
 			act(() => {
 				queryClient.setQueryData(productQueries.detail(KNOWN_NM).queryKey, product =>
-					product ? { ...product, video: null } : product
+					product ? { ...product, video: null, videoAvailability: 'absent' as const } : product
 				)
 			})
 

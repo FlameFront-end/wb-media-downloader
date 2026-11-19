@@ -11,7 +11,7 @@ export const cardSchema = z.object({
 	media: z.optional(
 		z.object({
 			photo_count: z.int().check(z.nonnegative()),
-			has_video: z.boolean()
+			has_video: z.optional(z.boolean())
 		})
 	)
 })

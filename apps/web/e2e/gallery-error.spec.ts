@@ -20,3 +20,24 @@ test('a card retry waits offline without spinning and resumes on reconnect', asy
 	await expect(dialog.getByRole('heading', { name: cardFixture.imt_name })).toBeVisible()
 	await expect(error).toHaveCount(0)
 })
+
+test('opens and downloads photos from a card without a video flag', async ({ page }) => {
+	await page.route(`**/${KNOWN_NM}/info/ru/card.json`, route =>
+		route.fulfill({ json: { ...cardFixture, media: { photo_count: 6 } } })
+	)
+	await page.goto('/')
+	await page.getByLabel('Артикул или ссылка WB').fill(String(KNOWN_NM))
+	await page.getByRole('button', { name: 'Найти товар' }).click()
+	const dialog = page.getByRole('dialog')
+	await expect(dialog.getByRole('checkbox', { name: /^Фото \d+$/ })).toHaveCount(6)
+	await expect(dialog.getByRole('button', { name: 'Скачать видео' })).toBeDisabled()
+	await expect(dialog.getByText('В карточке нет информации о видео')).toBeVisible()
+
+	await dialog.getByRole('checkbox', { name: 'Выбрать все' }).uncheck()
+	await dialog.getByRole('checkbox', { name: 'Фото 1', exact: true }).check()
+	const [download] = await Promise.all([
+		page.waitForEvent('download'),
+		dialog.getByRole('button', { name: 'Скачать фото (1)' }).click()
+	])
+	expect(await download.failure()).toBeNull()
+})

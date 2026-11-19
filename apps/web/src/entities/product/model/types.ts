@@ -21,9 +21,12 @@ export interface ProductVideo {
 	sources: ProductVideoSource[]
 }
 
-export interface Product {
+export type ProductVideoState =
+	| { videoAvailability: 'available'; video: ProductVideo }
+	| { videoAvailability: 'absent' | 'unknown' | 'unavailable'; video: null }
+
+export type Product = ProductVideoState & {
 	id: number
 	name: string
 	photos: ProductPhoto[]
-	video: ProductVideo | null
 }

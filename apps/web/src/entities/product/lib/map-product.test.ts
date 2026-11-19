@@ -33,6 +33,7 @@ describe('mapProduct', () => {
 					originalUrl: 'https://basket-30.wbbasket.ru/vol6041/part604174/604174866/images/big/2.webp'
 				}
 			],
+			videoAvailability: 'available',
 			video: {
 				sources: ['1440p', '1080p', '720p'].map(quality => ({
 					quality,
@@ -47,6 +48,7 @@ describe('mapProduct', () => {
 			id: nm,
 			name: `Товар ${nm}`,
 			photos: [],
+			videoAvailability: 'unknown',
 			video: null
 		})
 	})
@@ -54,12 +56,12 @@ describe('mapProduct', () => {
 	it('returns null video when has_video is false', () => {
 		const product = mapProduct({ nm_id: nm, media: { photo_count: 0, has_video: false } }, upstreams)
 
-		expect(product.video).toBeNull()
+		expect(product).toMatchObject({ video: null, videoAvailability: 'absent' })
 	})
 
 	it('returns null video when no video host covers the product', () => {
 		const product = mapProduct({ nm_id: 50, media: { photo_count: 0, has_video: true } }, upstreams)
 
-		expect(product.video).toBeNull()
+		expect(product).toMatchObject({ video: null, videoAvailability: 'unavailable' })
 	})
 })

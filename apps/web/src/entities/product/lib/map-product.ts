@@ -1,7 +1,7 @@
 import { buildPhotoUrl, buildVideoPlaylistUrl, VIDEO_QUALITIES, type Upstreams } from '@/shared/api'
 
 import type { CardDto } from '../api/card-schema'
-import type { Product, ProductPhoto, ProductVideo, ProductVideoSource } from '../model/types'
+import type { Product, ProductPhoto, ProductVideoSource, ProductVideoState } from '../model/types'
 
 const THUMBNAIL_SIZE = 'c246x328'
 const PREVIEW_SIZE = 'c516x688'
@@ -23,9 +23,12 @@ function mapPhotos(nm: number, photoCount: number, upstreams: Upstreams): Produc
 	return photos
 }
 
-function mapVideo(nm: number, hasVideo: boolean, upstreams: Upstreams): ProductVideo | null {
+function mapVideo(nm: number, hasVideo: boolean | undefined, upstreams: Upstreams): ProductVideoState {
+	if (hasVideo === undefined) {
+		return { videoAvailability: 'unknown', video: null }
+	}
 	if (!hasVideo) {
-		return null
+		return { videoAvailability: 'absent', video: null }
 	}
 
 	const sources = VIDEO_QUALITIES.flatMap((quality): ProductVideoSource[] => {
@@ -34,7 +37,9 @@ function mapVideo(nm: number, hasVideo: boolean, upstreams: Upstreams): ProductV
 		return playlistUrl ? [{ quality, playlistUrl }] : []
 	})
 
-	return sources.length > 0 ? { sources } : null
+	return sources.length > 0
+		? { videoAvailability: 'available', video: { sources } }
+		: { videoAvailability: 'unavailable', video: null }
 }
 
 export function mapProduct(card: CardDto, upstreams: Upstreams): Product {
@@ -44,6 +49,6 @@ export function mapProduct(card: CardDto, upstreams: Upstreams): Product {
 		id: nm,
 		name: card.imt_name ?? `Товар ${nm}`,
 		photos: mapPhotos(nm, card.media?.photo_count ?? 0, upstreams),
-		video: mapVideo(nm, card.media?.has_video ?? false, upstreams)
+		...mapVideo(nm, card.media?.has_video, upstreams)
 	}
 }

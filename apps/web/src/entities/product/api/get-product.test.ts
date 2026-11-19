@@ -22,6 +22,14 @@ describe('getProduct', () => {
 		expect(product.video?.sources[0]?.quality).toBe('1440p')
 	})
 
+	it('loads the photos when the CDN omits the video flag', async () => {
+		server.use(http.get(CARD_URL, () => HttpResponse.json({ nm_id: KNOWN_NM, media: { photo_count: 6 } })))
+
+		const product = await getProduct(KNOWN_NM, upstreams)
+		expect(product.photos).toHaveLength(6)
+		expect(product).toMatchObject({ video: null, videoAvailability: 'unknown' })
+	})
+
 	it('throws ProductNotFoundError when card is missing (404)', async () => {
 		await expect(getProduct(MISSING_NM, upstreams)).rejects.toBeInstanceOf(ProductNotFoundError)
 	})
