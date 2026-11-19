@@ -12,6 +12,7 @@
 		"dev": "npm run dev -w web",
 		"build": "npm run build -w web",
 		"preview": "npm run preview -w web",
+		"typecheck": "npm run typecheck --workspaces --if-present",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"lint": "eslint .",
