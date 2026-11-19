@@ -1,5 +1,9 @@
-const ARTICLE_PATTERN = /^\d{1,12}$/
-const CATALOG_PATH_PATTERN = /^\/catalog\/(\d{1,12})(?:\/|$)/
+const MAX_ARTICLE_DIGITS = 12
+const ARTICLE_PATTERN = /^\d+$/
+const GROUPED_ARTICLE_PATTERN = /^\d{1,3}(?:[ \u00a0\u202f]\d{3})+$/
+const ARTICLE_SEPARATOR = /[ \u00a0\u202f]/g
+const INVALID_LINK_CHARACTERS = /[\s\\]/u
+const CATALOG_PATH_PATTERN = /^\/catalog\/(\d+)(?:\/detail\.aspx)?\/?$/
 const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:\/\//i
 
 /** Storefront domains of Wildberries; subdomains (www., global.) are allowed. */
@@ -24,6 +28,9 @@ function isWbHost(hostname: string): boolean {
 }
 
 function parseCatalogLink(value: string): string | null {
+	if (INVALID_LINK_CHARACTERS.test(value)) {
+		return null
+	}
 	let url: URL
 
 	try {
@@ -32,7 +39,13 @@ function parseCatalogLink(value: string): string | null {
 		return null
 	}
 
-	if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !isWbHost(url.hostname)) {
+	if (
+		(url.protocol !== 'https:' && url.protocol !== 'http:') ||
+		url.username ||
+		url.password ||
+		url.port ||
+		!isWbHost(url.hostname)
+	) {
 		return null
 	}
 
@@ -50,10 +63,15 @@ export function parseArticle(input: string): ParseArticleResult {
 		return { ok: false, error: 'Введите артикул' }
 	}
 
-	const digits = ARTICLE_PATTERN.test(value) ? value : parseCatalogLink(value)
+	const compact = GROUPED_ARTICLE_PATTERN.test(value) ? value.replaceAll(ARTICLE_SEPARATOR, '') : value
+	const digits = ARTICLE_PATTERN.test(compact) ? compact : parseCatalogLink(value)
 
 	if (!digits) {
 		return { ok: false, error: INVALID_INPUT }
+	}
+
+	if (digits.length > MAX_ARTICLE_DIGITS) {
+		return { ok: false, error: `Артикул должен содержать не больше ${MAX_ARTICLE_DIGITS} цифр` }
 	}
 
 	const article = Number(digits)
