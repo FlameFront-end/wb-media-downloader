@@ -1,7 +1,14 @@
 export { mapWithConcurrency } from './concurrency/map-with-concurrency'
-export { saveBlob } from './download/save-blob'
+export {
+	useFileDownload,
+	type DownloadedFile,
+	type DownloadState,
+	type DownloadProgress,
+	type DownloadTask,
+	type DownloadTaskContext,
+	type FileDownload
+} from './download/use-file-download'
 export { isAbortError } from './errors/is-abort-error'
 export { InvalidSegmentError, UnsupportedPlaylistError } from './hls/errors'
-export { setMp4Duration } from './hls/mp4-duration'
-export { createMp4Transmuxer, type Mp4Transmuxer } from './hls/mp4-transmuxer'
-export { parseMediaPlaylist, type MediaPlaylist, type MediaSegment } from './hls/parse-media-playlist'
+export { createMp4Transmuxer } from './hls/mp4-transmuxer'
+export { parseMediaPlaylist, type MediaPlaylist } from './hls/parse-media-playlist'

@@ -38,6 +38,8 @@ export interface Mp4Transmuxer {
 	push: (segment: Uint8Array) => void
 	/** Returns the fragmented MP4 file. */
 	finish: (durationSeconds: number) => Blob
+	/** Releases mux.js listeners; call once done, whether `finish` succeeded or not. */
+	dispose: () => void
 }
 
 /**
@@ -72,13 +74,15 @@ export async function createMp4Transmuxer(): Promise<Mp4Transmuxer> {
 			}
 		},
 		finish(durationSeconds) {
-			transmuxer.dispose()
-
 			if (!initSegment || fragments.length === 0) {
 				throw new UnsupportedPlaylistError('Segments contain no playable media')
 			}
 
 			return new Blob([setMp4Duration(initSegment, durationSeconds), ...fragments], { type: 'video/mp4' })
+		},
+		dispose() {
+			transmuxer.dispose()
+			fragments.length = 0
 		}
 	}
 }

@@ -64,26 +64,33 @@ export async function createPhotosZip(
 	let done = 0
 	onProgress?.(done, entries.length)
 
-	await mapWithConcurrency(
-		entries,
-		concurrency,
-		async (entry, _, workerSignal) => {
-			let bytes: Uint8Array
+	try {
+		await mapWithConcurrency(
+			entries,
+			concurrency,
+			async (entry, _, workerSignal) => {
+				let bytes: Uint8Array
 
-			try {
-				bytes = await fetchWithRetry(entry.url, retries, workerSignal)
-			} catch (error) {
-				throw isAbortError(error) ? error : new PhotoDownloadError(entry.filename, error)
-			}
+				try {
+					bytes = await fetchWithRetry(entry.url, retries, workerSignal)
+				} catch (error) {
+					throw isAbortError(error) ? error : new PhotoDownloadError(entry.filename, error)
+				}
 
-			// add + final push run synchronously, so parallel downloads never interleave entries
-			const file = new ZipPassThrough(entry.filename)
-			zip.add(file)
-			file.push(bytes, true)
-			onProgress?.(++done, entries.length)
-		},
-		{ signal }
-	)
+				// add + final push run synchronously, so parallel downloads never interleave entries
+				const file = new ZipPassThrough(entry.filename)
+				zip.add(file)
+				file.push(bytes, true)
+				onProgress?.(++done, entries.length)
+			},
+			{ signal }
+		)
+	} catch (error) {
+		// Drop the half-built archive right away instead of waiting for GC
+		zip.terminate()
+		chunks.length = 0
+		throw error
+	}
 
 	zip.end()
 

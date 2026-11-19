@@ -11,12 +11,7 @@ export async function fetchJson<Schema extends z.ZodMiniType>(
 	schema: Schema,
 	{ signal }: RequestOptions = {}
 ): Promise<z.output<Schema>> {
-	const response = await fetch(url, { signal, headers: { Accept: 'application/json' } })
-
-	if (!response.ok) {
-		throw new HttpError(response.status, url)
-	}
-
+	const response = await fetchOk(url, { signal, headers: { Accept: 'application/json' } })
 	let body: unknown
 
 	try {
@@ -40,8 +35,8 @@ export async function fetchJson<Schema extends z.ZodMiniType>(
 	return result.data
 }
 
-async function fetchOk(url: string, { signal }: RequestOptions): Promise<Response> {
-	const response = await fetch(url, { signal })
+async function fetchOk(url: string, init: RequestInit): Promise<Response> {
+	const response = await fetch(url, init)
 
 	if (!response.ok) {
 		throw new HttpError(response.status, url)

@@ -1,8 +1,9 @@
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ProductVideo } from '@/entities/product'
 import { HttpError, VIDEO_QUALITIES } from '@/shared/api'
+import type * as sharedLib from '@/shared/lib'
 import { InvalidSegmentError, UnsupportedPlaylistError } from '@/shared/lib'
 
 import { server } from '../../../../test/msw/server'
@@ -15,7 +16,34 @@ const video: ProductVideo = {
 }
 const notFound = () => new HttpResponse(null, { status: 404 })
 
+const transmuxers = vi.hoisted(() => ({ created: 0, disposed: 0 }))
+
+vi.mock('@/shared/lib', async importOriginal => {
+	const lib = await importOriginal<typeof sharedLib>()
+
+	return {
+		...lib,
+		createMp4Transmuxer: async () => {
+			const transmuxer = await lib.createMp4Transmuxer()
+			transmuxers.created++
+
+			return {
+				...transmuxer,
+				dispose: () => {
+					transmuxers.disposed++
+					transmuxer.dispose()
+				}
+			}
+		}
+	}
+})
+
 describe('downloadProductVideo', () => {
+	beforeEach(() => {
+		transmuxers.created = 0
+		transmuxers.disposed = 0
+	})
+
 	it('downloads the best quality as mp4', async () => {
 		const progress: string[] = []
 
@@ -72,6 +100,28 @@ describe('downloadProductVideo', () => {
 		server.use(http.get(`${BASE}/1440p/1.ts`, () => new HttpResponse(null, { status: 503 })))
 
 		await expect(downloadProductVideo(video)).rejects.toMatchObject({ status: 503 })
+	})
+
+	it('releases the transmuxer whether the download succeeds or fails', async () => {
+		await downloadProductVideo(video)
+		server.use(http.get(`${BASE}/1440p/1.ts`, () => new HttpResponse(null, { status: 503 })))
+		await expect(downloadProductVideo(video)).rejects.toThrow()
+
+		expect(transmuxers).toEqual({ created: 2, disposed: 2 })
+	})
+
+	it('does not create a transmuxer when no playlist is available', async () => {
+		server.use(http.get(/\/hls\/\w+\/index\.m3u8$/, notFound))
+
+		await expect(downloadProductVideo(video)).rejects.toBeInstanceOf(VideoUnavailableError)
+		expect(transmuxers).toEqual({ created: 0, disposed: 0 })
+	})
+
+	it('does not create a transmuxer when the playlist is unsupported', async () => {
+		server.use(http.get(`${BASE}/1440p/index.m3u8`, () => HttpResponse.text('not a playlist')))
+
+		await expect(downloadProductVideo(video)).rejects.toBeInstanceOf(UnsupportedPlaylistError)
+		expect(transmuxers).toEqual({ created: 0, disposed: 0 })
 	})
 
 	it.each([

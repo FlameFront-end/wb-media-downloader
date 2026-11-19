@@ -11,7 +11,7 @@ interface DownloadVideoOptions {
 	onProgress?: (done: number, total: number) => void
 }
 
-export interface DownloadedVideo {
+interface DownloadedVideo {
 	quality: VideoQuality
 	file: Blob
 }
@@ -52,20 +52,23 @@ export async function downloadProductVideo(
 ): Promise<DownloadedVideo> {
 	signal?.throwIfAborted()
 
-	const [{ quality, playlist }, transmuxer] = await Promise.all([
-		resolvePlaylist(video.sources, signal),
-		createMp4Transmuxer()
-	])
+	// Playlist first: when there is no video, no transmuxer is created at all
+	const { quality, playlist } = await resolvePlaylist(video.sources, signal)
 	const total = playlist.segments.length
+	const transmuxer = await createMp4Transmuxer()
 
-	onProgress?.(0, total)
+	try {
+		onProgress?.(0, total)
 
-	for (const [index, segment] of playlist.segments.entries()) {
-		transmuxer.push(await fetchBytes(segment.url, { signal }))
-		onProgress?.(index + 1, total)
+		for (const [index, segment] of playlist.segments.entries()) {
+			transmuxer.push(await fetchBytes(segment.url, { signal }))
+			onProgress?.(index + 1, total)
+		}
+
+		signal?.throwIfAborted()
+
+		return { quality, file: transmuxer.finish(playlist.durationSeconds) }
+	} finally {
+		transmuxer.dispose()
 	}
-
-	signal?.throwIfAborted()
-
-	return { quality, file: transmuxer.finish(playlist.durationSeconds) }
 }

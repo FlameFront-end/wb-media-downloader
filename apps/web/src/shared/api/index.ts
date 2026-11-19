@@ -4,11 +4,8 @@ export {
 	buildCardInfoUrl,
 	buildPhotoUrl,
 	buildVideoPlaylistUrl,
-	PHOTO_SIZES,
-	resolveHost,
 	VIDEO_QUALITIES,
-	type PhotoSize,
 	type VideoQuality
 } from './wb-cdn/media-urls'
-export { getUpstreams, upstreamsSchema, type HostRange, type Upstreams } from './wb-cdn/upstreams'
+export { upstreamsSchema, type Upstreams } from './wb-cdn/upstreams'
 export { wbCdnQueries } from './wb-cdn/upstreams.queries'
