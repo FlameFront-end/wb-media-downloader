@@ -6,13 +6,15 @@
 		"apps/*"
 	],
 	"engines": {
-		"node": "^22.22.1 || >=24"
+		"node": "^22.22.2 || ^24.15.0 || >=26"
 	},
 	"scripts": {
 		"dev": "npm run dev -w web",
 		"build": "npm run build -w web",
 		"preview": "npm run preview -w web",
 		"typecheck": "npm run typecheck --workspaces --if-present",
+		"test": "npm run test --workspaces --if-present",
+		"test:coverage": "npm run test:coverage --workspaces --if-present",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"lint": "eslint .",
