@@ -14,5 +14,9 @@ export default defineConfig(({ mode }) => ({
 	],
 	resolve: {
 		tsconfigPaths: true
+	},
+	server: {
+		port: 5173,
+		strictPort: true
 	}
 }))
