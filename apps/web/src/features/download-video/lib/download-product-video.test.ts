@@ -24,8 +24,10 @@ vi.mock('@/shared/lib', async importOriginal => {
 	return {
 		...lib,
 		createMp4Transmuxer: async () => {
-			const transmuxer = await lib.createMp4Transmuxer()
+			// Counted on call, before the async import: a transmuxer started in parallel
+			// with a failing playlist request is caught however fast the request fails
 			transmuxers.created++
+			const transmuxer = await lib.createMp4Transmuxer()
 
 			return {
 				...transmuxer,
