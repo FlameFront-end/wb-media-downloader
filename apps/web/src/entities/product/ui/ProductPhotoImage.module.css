@@ -1,0 +1,21 @@
+/* Neutral placeholder while the preview loads (and if it never does) */
+.frame {
+	overflow: hidden;
+	border-radius: var(--mantine-radius-sm);
+	background-color: var(--mantine-color-default-hover);
+}
+
+.image {
+	opacity: 0;
+	transition: opacity 200ms ease-out;
+}
+
+.image[data-loaded] {
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.image {
+		transition: none;
+	}
+}

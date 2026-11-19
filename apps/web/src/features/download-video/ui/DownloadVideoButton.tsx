@@ -7,6 +7,7 @@ import { useDownloadVideo } from '../model/use-download-video'
 
 interface DownloadVideoButtonProps {
 	product: Product
+	align?: 'start' | 'end'
 }
 
 function formatError(error: Error): string {
@@ -25,7 +26,7 @@ function formatError(error: Error): string {
 	return 'Не удалось скачать видео. Попробуйте ещё раз.'
 }
 
-export function DownloadVideoButton({ product }: DownloadVideoButtonProps) {
+export function DownloadVideoButton({ product, align }: DownloadVideoButtonProps) {
 	const { downloadVideo, ...download } = useDownloadVideo(product)
 	const hasVideo = product.video !== null
 
@@ -40,6 +41,8 @@ export function DownloadVideoButton({ product }: DownloadVideoButtonProps) {
 			progressLabel='Прогресс скачивания видео'
 			formatProgress={({ done, total }) => `Сегментов ${done} из ${total}`}
 			formatError={formatError}
+			savedMessage='Видео сохранено'
+			align={align}
 		/>
 	)
 }

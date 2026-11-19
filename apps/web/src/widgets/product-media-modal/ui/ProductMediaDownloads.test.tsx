@@ -125,9 +125,11 @@ describe('ProductMediaModal downloads', () => {
 			await user.click(button)
 			await user.click(await screen.findByRole('button', { name: 'Отмена' }))
 
-			// still offline: nothing is pending anymore
-			expect(screen.queryByText(PAUSED_MESSAGE)).not.toBeInTheDocument()
+			// still offline: nothing is pending anymore (the hint collapses away)
 			expect(screen.queryByRole('button', { name: 'Отмена' })).not.toBeInTheDocument()
+			await waitFor(() => {
+				expect(screen.queryByText(PAUSED_MESSAGE)).not.toBeInTheDocument()
+			})
 			expect(screen.getByRole('button', { name: label })).toBeEnabled()
 			expect(screen.getByRole('button', { name: label })).not.toHaveAttribute('data-loading')
 
@@ -177,6 +179,18 @@ describe('ProductMediaModal downloads', () => {
 				`wb-${KNOWN_NM}-02.webp`,
 				`wb-${KNOWN_NM}-03.webp`
 			])
+		})
+
+		it('confirms the saved archive', async () => {
+			const downloads = captureDownloads()
+			const user = userEvent.setup()
+			renderModal()
+
+			expect(screen.queryByRole('status')).not.toBeInTheDocument()
+			await user.click(await screen.findByRole('button', { name: 'Скачать фото (3)' }))
+			await waitForSingleDownload(downloads)
+
+			expect(await screen.findByRole('status')).toHaveTextContent('Архив сохранён')
 		})
 
 		it('puts only selected photos into the archive', async () => {

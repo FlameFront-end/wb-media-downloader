@@ -8,9 +8,11 @@ interface ArticleFormProps {
 	onSubmit: (article: number) => void
 	/** The user is about to submit (focus or hover): a good moment to preload what comes next */
 	onIntent?: () => void
+	/** Submit accepted, waiting for what it opens. */
+	loading?: boolean
 }
 
-export function ArticleForm({ onSubmit, onIntent }: ArticleFormProps) {
+export function ArticleForm({ onSubmit, onIntent, loading = false }: ArticleFormProps) {
 	const [value, setValue] = useState('')
 	const [error, setError] = useState<string | null>(null)
 
@@ -45,7 +47,7 @@ export function ArticleForm({ onSubmit, onIntent }: ArticleFormProps) {
 				inputContainer={input => (
 					<Group gap='sm' wrap='nowrap' align='flex-start'>
 						<Box flex={1}>{input}</Box>
-						<Button type='submit' onPointerEnter={onIntent}>
+						<Button type='submit' loading={loading} onPointerEnter={onIntent}>
 							Скачать фото
 						</Button>
 					</Group>

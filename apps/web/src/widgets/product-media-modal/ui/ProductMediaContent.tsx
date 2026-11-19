@@ -1,11 +1,10 @@
-import { Alert, Button, SimpleGrid, Skeleton, Stack, Text } from '@mantine/core'
+import { Alert, Button, Stack, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 
 import { ProductNotFoundError, productQueries } from '@/entities/product'
 
 import { ProductGallery } from './ProductGallery'
-
-const SKELETON_TILES = 8
+import { ProductGallerySkeleton } from './ProductGallerySkeleton'
 
 interface ProductMediaContentProps {
 	productId: number
@@ -50,16 +49,7 @@ export function ProductMediaContent({ productId }: ProductMediaContentProps) {
 	}
 
 	if (isPending) {
-		return (
-			<Stack gap='md' aria-busy='true' aria-label='Загрузка карточки'>
-				<Skeleton height={24} width='60%' />
-				<SimpleGrid cols={{ base: 2, xs: 3, sm: 4 }} spacing='sm'>
-					{Array.from({ length: SKELETON_TILES }, (_, index) => (
-						<Skeleton key={index} style={{ aspectRatio: '3 / 4' }} />
-					))}
-				</SimpleGrid>
-			</Stack>
-		)
+		return <ProductGallerySkeleton />
 	}
 
 	if (error instanceof ProductNotFoundError) {

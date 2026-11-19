@@ -38,6 +38,8 @@ export interface DownloadState {
 	isPaused: boolean
 	/** Last failure; cancellation is not an error. */
 	error: Error | null
+	/** True for a few seconds after the file was handed to the browser. */
+	isSaved: boolean
 }
 
 export interface FileDownload extends DownloadState {
@@ -49,14 +51,24 @@ export interface FileDownload extends DownloadState {
  * Cancellation is bound to the click: a run that was cancelled, replaced or
  * outlived its component (paused offline, then resumed) never saves a file.
  */
+const SAVED_HINT_MS = 4000
+
 export function useFileDownload(mutationKey: MutationKey): FileDownload {
 	const controllerRef = useRef<AbortController | null>(null)
+	const savedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 	const [progress, setProgress] = useState<DownloadProgress | null>(null)
+	const [isSaved, setIsSaved] = useState(false)
+
+	const hideSaved = useCallback(() => {
+		clearTimeout(savedTimerRef.current)
+		setIsSaved(false)
+	}, [])
 
 	// Unmounting (closing the modal) stops downloads nobody will save
 	useEffect(
 		() => () => {
 			controllerRef.current?.abort()
+			clearTimeout(savedTimerRef.current)
 		},
 		[]
 	)
@@ -78,6 +90,12 @@ export function useFileDownload(mutationKey: MutationKey): FileDownload {
 
 			signal.throwIfAborted()
 			saveBlob(file, filename)
+
+			setIsSaved(true)
+			clearTimeout(savedTimerRef.current)
+			savedTimerRef.current = setTimeout(() => {
+				setIsSaved(false)
+			}, SAVED_HINT_MS)
 		},
 		onSettled: (_data, _error, { signal }) => {
 			// A cancelled run may settle after a newer one started: don't clear its progress
@@ -89,12 +107,13 @@ export function useFileDownload(mutationKey: MutationKey): FileDownload {
 
 	const start = useCallback(
 		(task: DownloadTask) => {
+			hideSaved()
 			controllerRef.current?.abort()
 			const controller = new AbortController()
 			controllerRef.current = controller
 			mutate({ task, signal: controller.signal })
 		},
-		[mutate]
+		[mutate, hideSaved]
 	)
 
 	const cancel = useCallback(() => {
@@ -103,7 +122,8 @@ export function useFileDownload(mutationKey: MutationKey): FileDownload {
 		// makes it a no-op then, so the UI can return to idle right away.
 		reset()
 		setProgress(null)
-	}, [reset])
+		hideSaved()
+	}, [reset, hideSaved])
 
 	return {
 		start,
@@ -111,6 +131,7 @@ export function useFileDownload(mutationKey: MutationKey): FileDownload {
 		progress,
 		isPending,
 		isPaused,
-		error: error && !isAbortError(error) ? error : null
+		error: error && !isAbortError(error) ? error : null,
+		isSaved
 	}
 }

@@ -15,7 +15,7 @@ const ProductMediaModal = lazy(async () => ({ default: (await loadProductMediaMo
  * and Chromium keeps the failed module in its module map. Reloading the page is the
  * only reliable recovery, so the error offers exactly that.
  */
-export function LazyProductMediaModal({ productId, onClose }: ProductMediaModalProps) {
+export function LazyProductMediaModal({ productId, onClose, onExited }: ProductMediaModalProps) {
 	return (
 		<ErrorBoundary
 			fallback={
@@ -38,7 +38,7 @@ export function LazyProductMediaModal({ productId, onClose }: ProductMediaModalP
 			}
 		>
 			<Suspense fallback={null}>
-				<ProductMediaModal productId={productId} onClose={onClose} />
+				<ProductMediaModal productId={productId} onClose={onClose} onExited={onExited} />
 			</Suspense>
 		</ErrorBoundary>
 	)
