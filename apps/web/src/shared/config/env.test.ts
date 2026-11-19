@@ -3,17 +3,23 @@ import { describe, expect, it } from 'vitest'
 import { parseEnv } from './env'
 
 describe('parseEnv', () => {
-	it('applies defaults', () => {
-		expect(parseEnv({})).toEqual({ VITE_PROXY_URL: '/api' })
+	it('applies default upstreams url', () => {
+		expect(parseEnv({})).toEqual({ VITE_WB_UPSTREAMS_URL: 'https://cdn.wbbasket.ru/api/v3/upstreams' })
 	})
 
-	it('keeps provided values', () => {
-		expect(parseEnv({ VITE_PROXY_URL: 'https://proxy.example' })).toEqual({
-			VITE_PROXY_URL: 'https://proxy.example'
+	it('keeps provided http(s) url', () => {
+		expect(parseEnv({ VITE_WB_UPSTREAMS_URL: 'http://localhost:4000/upstreams' })).toEqual({
+			VITE_WB_UPSTREAMS_URL: 'http://localhost:4000/upstreams'
 		})
 	})
 
-	it('throws on invalid values', () => {
-		expect(() => parseEnv({ VITE_PROXY_URL: '  ' })).toThrow(/VITE_PROXY_URL/)
+	it.each([
+		['empty string', ''],
+		['relative path', '/api/upstreams'],
+		['non-http protocol', 'ftp://cdn.example/upstreams'],
+		['trailing slash', 'https://cdn.wbbasket.ru/api/v3/upstreams/'],
+		['not a url', 'upstreams']
+	])('rejects %s', (_, value) => {
+		expect(() => parseEnv({ VITE_WB_UPSTREAMS_URL: value })).toThrow(/VITE_WB_UPSTREAMS_URL/)
 	})
 })
