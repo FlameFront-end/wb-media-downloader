@@ -13,7 +13,14 @@ export default defineConfig({
 		baseURL: `http://localhost:${PORT}`,
 		trace: 'retain-on-failure'
 	},
-	projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+	projects: [
+		{
+			name: 'chrome',
+			use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+			testIgnore: '**/webkit-smoke.spec.ts'
+		},
+		{ name: 'webkit', use: { ...devices['iPhone 13'] }, testMatch: '**/webkit-smoke.spec.ts' }
+	],
 	// Production build: chunk names and lazy loading match what users get
 	webServer: {
 		command: `vite build && vite preview --port ${PORT} --strictPort`,
