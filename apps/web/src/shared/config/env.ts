@@ -1,15 +1,17 @@
-import { z } from 'zod'
+import * as z from 'zod/mini'
 
 const DEFAULT_WB_UPSTREAMS_URL = 'https://cdn.wbbasket.ru/api/v3/upstreams'
 
 const envSchema = z.object({
-	VITE_WB_UPSTREAMS_URL: z
-		.url({ protocol: /^https?$/, error: 'Expected an absolute http(s) URL' })
-		.refine(value => !value.endsWith('/'), 'Must not end with a trailing slash')
-		.default(DEFAULT_WB_UPSTREAMS_URL)
+	VITE_WB_UPSTREAMS_URL: z._default(
+		z
+			.url({ protocol: /^https?$/, error: 'Expected an absolute http(s) URL' })
+			.check(z.refine(value => !value.endsWith('/'), 'Must not end with a trailing slash')),
+		DEFAULT_WB_UPSTREAMS_URL
+	)
 })
 
-export type Env = z.infer<typeof envSchema>
+export type Env = z.output<typeof envSchema>
 
 export function parseEnv(raw: Record<string, unknown>): Env {
 	const result = envSchema.safeParse(raw)

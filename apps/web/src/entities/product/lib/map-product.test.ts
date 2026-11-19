@@ -22,11 +22,13 @@ describe('mapProduct', () => {
 			photos: [
 				{
 					index: 1,
+					thumbnailUrl: `https://basket-30.wbbasket.ru/vol6041/part604174/604174866/images/c246x328/1.webp`,
 					previewUrl: 'https://basket-30.wbbasket.ru/vol6041/part604174/604174866/images/c516x688/1.webp',
 					originalUrl: 'https://basket-30.wbbasket.ru/vol6041/part604174/604174866/images/big/1.webp'
 				},
 				{
 					index: 2,
+					thumbnailUrl: `https://basket-30.wbbasket.ru/vol6041/part604174/604174866/images/c246x328/2.webp`,
 					previewUrl: 'https://basket-30.wbbasket.ru/vol6041/part604174/604174866/images/c516x688/2.webp',
 					originalUrl: 'https://basket-30.wbbasket.ru/vol6041/part604174/604174866/images/big/2.webp'
 				}

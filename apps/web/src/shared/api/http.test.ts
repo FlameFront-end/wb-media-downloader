@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
-import { z } from 'zod'
+import * as z from 'zod/mini'
 
 import { server } from '../../../test/msw/server'
 

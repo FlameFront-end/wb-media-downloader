@@ -1,1 +1,1 @@
-export { ProductMediaModal } from './ui/ProductMediaModal'
+export { ProductMediaModal, type ProductMediaModalProps } from './ui/ProductMediaModal'

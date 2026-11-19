@@ -2,7 +2,7 @@ import { Modal } from '@mantine/core'
 
 import { ProductMediaContent } from './ProductMediaContent'
 
-interface ProductMediaModalProps {
+export interface ProductMediaModalProps {
 	productId: number | null
 	onClose: () => void
 }

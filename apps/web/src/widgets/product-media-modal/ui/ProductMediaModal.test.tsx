@@ -45,6 +45,11 @@ describe('ProductMediaModal', () => {
 			'src',
 			'https://basket-30.wbbasket.ru/vol6041/part604174/604174866/images/c516x688/1.webp'
 		)
+		expect(firstImage).toHaveAttribute(
+			'srcset',
+			'https://basket-30.wbbasket.ru/vol6041/part604174/604174866/images/c246x328/1.webp 246w, https://basket-30.wbbasket.ru/vol6041/part604174/604174866/images/c516x688/1.webp 516w'
+		)
+		expect(firstImage).toHaveAttribute('sizes')
 		expect(firstImage).toHaveAttribute('loading', 'lazy')
 	})
 

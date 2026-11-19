@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as z from 'zod/mini'
 
 import { HttpError, InvalidResponseError } from './errors'
 
@@ -6,7 +6,7 @@ interface RequestOptions {
 	signal?: AbortSignal
 }
 
-export async function fetchJson<Schema extends z.ZodType>(
+export async function fetchJson<Schema extends z.ZodMiniType>(
 	url: string,
 	schema: Schema,
 	{ signal }: RequestOptions = {}

@@ -1,4 +1,4 @@
-import '@mantine/core/styles.css'
+import '../styles/mantine'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

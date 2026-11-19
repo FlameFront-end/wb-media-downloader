@@ -6,9 +6,11 @@ import { parseArticle } from '../model/parse-article'
 
 interface ArticleFormProps {
 	onSubmit: (article: number) => void
+	/** The user is about to submit (focus or hover): a good moment to preload what comes next */
+	onIntent?: () => void
 }
 
-export function ArticleForm({ onSubmit }: ArticleFormProps) {
+export function ArticleForm({ onSubmit, onIntent }: ArticleFormProps) {
 	const [value, setValue] = useState('')
 	const [error, setError] = useState<string | null>(null)
 
@@ -38,10 +40,11 @@ export function ArticleForm({ onSubmit }: ArticleFormProps) {
 						setError(null)
 					}}
 					error={error}
+					onFocus={onIntent}
 					inputMode='numeric'
 					autoComplete='off'
 				/>
-				<Button type='submit' mt={25}>
+				<Button type='submit' mt={25} onPointerEnter={onIntent}>
 					Скачать фото
 				</Button>
 			</Group>

@@ -3,7 +3,11 @@ import type { VideoQuality } from '@/shared/api'
 export interface ProductPhoto {
 	/** 1-based index on WB CDN */
 	index: number
+	/** 246×328 — grid tile on 1x screens */
+	thumbnailUrl: string
+	/** 516×688 — grid tile on 2x screens */
 	previewUrl: string
+	/** Full-size original — goes into the archive */
 	originalUrl: string
 }
 
