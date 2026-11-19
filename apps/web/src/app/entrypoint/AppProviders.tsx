@@ -8,6 +8,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { ErrorFallback } from '@/shared/ui'
 
 import { createQueryClient } from '../query/query-client'
+import { DEFAULT_MANTINE_COLOR_SCHEME } from '../styles/color-scheme'
 import { theme } from '../styles/theme'
 
 interface AppProvidersProps {
@@ -18,7 +19,7 @@ export function AppProviders({ children }: AppProvidersProps) {
 	const [queryClient] = useState(createQueryClient)
 
 	return (
-		<MantineProvider theme={theme} defaultColorScheme='auto'>
+		<MantineProvider theme={theme} defaultColorScheme={DEFAULT_MANTINE_COLOR_SCHEME}>
 			<QueryClientProvider client={queryClient}>
 				<QueryErrorResetBoundary>
 					{({ reset }) => (
