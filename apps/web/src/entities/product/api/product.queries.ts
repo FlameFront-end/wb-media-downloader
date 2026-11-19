@@ -12,8 +12,7 @@ export const productQueries = {
 		queryOptions({
 			queryKey: [...productQueries.all(), 'detail', nm] as const,
 			queryFn: async ({ client, signal }) => {
-				// Cached for the whole session: host route maps change rarely
-				const upstreams = await client.query({ ...wbCdnQueries.upstreams(), staleTime: 'static' })
+				const upstreams = await client.query(wbCdnQueries.upstreams())
 
 				return getProduct(nm, upstreams, signal)
 			},

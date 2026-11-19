@@ -1,6 +1,6 @@
 import { QueryClient } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { cardFixture, KNOWN_NM, MISSING_NM, UPSTREAMS_URL, upstreamsFixture } from '../../../../test/msw/fixtures/wb'
 import { server } from '../../../../test/msw/server'
@@ -29,6 +29,24 @@ describe('productQueries.detail', () => {
 		await client.query(productQueries.detail(MISSING_NM)).catch(() => undefined)
 
 		expect(upstreamsRequests).toBe(1)
+	})
+
+	it('refreshes the CDN route table after it becomes stale', async () => {
+		const client = createClient()
+		let requests = 0
+		server.use(
+			http.get(UPSTREAMS_URL, () => {
+				requests++
+				return HttpResponse.json(upstreamsFixture)
+			})
+		)
+
+		await client.query(productQueries.detail(KNOWN_NM))
+		vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 11 * 60_000)
+		await expect(client.query(productQueries.detail(MISSING_NM))).rejects.toBeInstanceOf(ProductNotFoundError)
+
+		expect(requests).toBe(2)
+		client.clear()
 	})
 
 	it('does not retry when product is not found', async () => {

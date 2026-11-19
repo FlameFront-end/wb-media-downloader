@@ -5,7 +5,7 @@ import * as z from 'zod/mini'
 import { server } from '../../../test/msw/server'
 
 import { HttpError, InvalidResponseError, isRetryableError } from './errors'
-import { fetchJson } from './http'
+import { fetchBytes, fetchJson } from './http'
 
 const URL = 'https://api.example.test/item'
 const schema = z.object({ id: z.number() })
@@ -119,5 +119,33 @@ describe('fetchJson', () => {
 			expect(error).toBeInstanceOf(TypeError)
 			expect(isRetryableError(error)).toBe(true)
 		})
+	})
+})
+
+describe('request timeout', () => {
+	function noResponse(_url: string, init?: RequestInit) {
+		return new Promise<Response>((_resolve, reject) => {
+			init?.signal?.addEventListener('abort', () => {
+				reject(new DOMException('request aborted', 'AbortError'))
+			})
+		})
+	}
+
+	it.each([
+		['JSON', () => fetchJson(URL, schema, { timeoutMs: 20 })],
+		['binary', () => fetchBytes(URL, { timeoutMs: 20 })]
+	])('bounds a stalled %s request and exposes a retryable timeout', async (_, request) => {
+		vi.useFakeTimers()
+		try {
+			vi.stubGlobal('fetch', noResponse)
+			const result = request().catch((error: unknown) => error)
+			await vi.advanceTimersByTimeAsync(20)
+
+			const error = await result
+			expect(error).toMatchObject({ name: 'TimeoutError' })
+			expect(isRetryableError(error)).toBe(true)
+		} finally {
+			vi.useRealTimers()
+		}
 	})
 })

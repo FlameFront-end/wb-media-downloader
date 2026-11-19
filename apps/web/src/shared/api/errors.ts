@@ -22,6 +22,10 @@ export class InvalidResponseError extends Error {
 	}
 }
 
+export function isTimeoutError(error: unknown): boolean {
+	return error instanceof DOMException && error.name === 'TimeoutError'
+}
+
 /**
  * Retry only transient failures: network errors, 5xx and 429.
  * Client errors and malformed responses won't fix themselves.
@@ -35,5 +39,5 @@ export function isRetryableError(error: unknown): boolean {
 		return error.status >= 500 || error.status === 429
 	}
 
-	return error instanceof TypeError
+	return error instanceof TypeError || isTimeoutError(error)
 }

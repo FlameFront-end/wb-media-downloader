@@ -8,6 +8,7 @@ describe('describeLoadError', () => {
 	it.each([
 		['offline', new TypeError('Failed to fetch'), false, 'Нет подключения к интернету'],
 		['no response', new TypeError('Failed to fetch'), true, 'Не удалось связаться с серверами Wildberries'],
+		['timeout', new DOMException('timeout', 'TimeoutError'), true, 'слишком долго отвечает'],
 		['server error', new HttpError(503, 'u'), true, 'Серверы Wildberries сейчас не отвечают'],
 		['rate limit', new HttpError(429, 'u'), true, 'ограничил число запросов'],
 		['refused', new HttpError(403, 'u'), true, 'отклонил запрос (код 403)'],

@@ -1,8 +1,9 @@
 import type { Product } from '@/entities/product'
+import { isTimeoutError } from '@/shared/api'
 import { InvalidSegmentError, UnsupportedPlaylistError } from '@/shared/lib'
 import { DownloadControl } from '@/shared/ui'
 
-import { videoRequestTimedOut, VideoUnavailableError } from '../lib/download-product-video'
+import { VideoUnavailableError } from '../lib/download-product-video'
 import { useDownloadVideo } from '../model/use-download-video'
 
 interface DownloadVideoButtonProps {
@@ -11,7 +12,7 @@ interface DownloadVideoButtonProps {
 }
 
 function formatError(error: Error): string {
-	if (videoRequestTimedOut(error)) {
+	if (isTimeoutError(error)) {
 		return 'Сервер видео долго не отвечает. Попробуйте ещё раз.'
 	}
 

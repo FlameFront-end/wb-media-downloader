@@ -8,7 +8,9 @@ export const wbCdnQueries = {
 		queryOptions({
 			queryKey: [...wbCdnQueries.all(), 'upstreams'] as const,
 			queryFn: ({ signal }) => getUpstreams(signal),
-			staleTime: Infinity,
-			gcTime: Infinity
+			// The enclosing card query owns retries for this dependency.
+			retry: false,
+			staleTime: 10 * 60_000,
+			gcTime: 30 * 60_000
 		})
 }

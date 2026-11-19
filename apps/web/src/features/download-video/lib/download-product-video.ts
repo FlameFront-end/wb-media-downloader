@@ -19,10 +19,6 @@ interface DownloadVideoOptions {
 const IDLE_TIMEOUT_MS = 12_000
 const PROGRESS_STEP_BYTES = 64 * 1024
 
-export function videoRequestTimedOut(error: unknown): boolean {
-	return error instanceof DOMException && error.name === 'TimeoutError'
-}
-
 async function fetchSegment(
 	url: string,
 	signal: AbortSignal | undefined,
@@ -30,25 +26,15 @@ async function fetchSegment(
 ): Promise<Uint8Array<ArrayBuffer>> {
 	for (let attempt = 0; ; attempt++) {
 		signal?.throwIfAborted()
-		const idle = new AbortController()
-		const requestSignal = signal ? AbortSignal.any([signal, idle.signal]) : idle.signal
-		let timer: ReturnType<typeof setTimeout>
-		const armTimeout = () =>
-			setTimeout(() => {
-				idle.abort(new DOMException('The video segment stopped transferring', 'TimeoutError'))
-			}, IDLE_TIMEOUT_MS)
-
-		timer = armTimeout()
 		let reported = 0
 		try {
 			if (attempt > 0) {
 				onBytes(0)
 			}
 			return await fetchBytes(url, {
-				signal: requestSignal,
+				signal,
+				timeoutMs: IDLE_TIMEOUT_MS,
 				onBytes(received) {
-					clearTimeout(timer)
-					timer = armTimeout()
 					if (received - reported >= PROGRESS_STEP_BYTES) {
 						reported = received
 						onBytes(received)
@@ -57,12 +43,9 @@ async function fetchSegment(
 			})
 		} catch (error) {
 			signal?.throwIfAborted()
-			if (attempt > 0 || (!idle.signal.aborted && !isRetryableError(error))) {
-				idle.signal.throwIfAborted()
+			if (attempt > 0 || !isRetryableError(error)) {
 				throw error
 			}
-		} finally {
-			clearTimeout(timer)
 		}
 	}
 }
@@ -76,17 +59,7 @@ async function downloadRendition(
 	source: ProductVideoSource,
 	{ signal, onProgress }: DownloadVideoOptions
 ): Promise<DownloadedVideo> {
-	const timeout = AbortSignal.timeout(IDLE_TIMEOUT_MS)
-	let text: string
-	try {
-		text = await fetchText(source.playlistUrl, {
-			signal: signal ? AbortSignal.any([signal, timeout]) : timeout
-		})
-	} catch (error) {
-		signal?.throwIfAborted()
-		timeout.throwIfAborted()
-		throw error
-	}
+	const text = await fetchText(source.playlistUrl, { signal, timeoutMs: IDLE_TIMEOUT_MS })
 
 	const playlist = parseMediaPlaylist(text, source.playlistUrl)
 	const total = playlist.segments.length

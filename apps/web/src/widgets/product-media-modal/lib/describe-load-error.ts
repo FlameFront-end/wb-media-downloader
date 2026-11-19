@@ -1,9 +1,13 @@
-import { HttpError, InvalidResponseError } from '@/shared/api'
+import { HttpError, InvalidResponseError, isTimeoutError } from '@/shared/api'
 
 /** What went wrong with the card request, in words the user can act on. */
 export function describeLoadError(error: Error | null, online = navigator.onLine): string {
 	if (!online) {
 		return 'Нет подключения к интернету. Подключитесь и попробуйте ещё раз.'
+	}
+
+	if (isTimeoutError(error)) {
+		return 'Wildberries слишком долго отвечает. Попробуйте ещё раз.'
 	}
 
 	if (error instanceof HttpError) {

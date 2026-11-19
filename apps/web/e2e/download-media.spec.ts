@@ -216,3 +216,36 @@ test('rejects a discontinuous video when no compatible quality is available', as
 	await expect(dialog.getByRole('alert')).toContainText('Формат видео не поддерживается')
 	expect(downloads).toBe(0)
 })
+
+test('times out a stalled photo, retries once and keeps the ZIP unsaved', async ({ page }) => {
+	await page.clock.install()
+	await page.addInitScript(() => {
+		const originalFetch = window.fetch.bind(window)
+		window.fetch = (input, options) => {
+			if (typeof input !== 'string' || !input.endsWith('/images/big/2.webp')) {
+				return originalFetch(input, options)
+			}
+
+			const root = document.documentElement
+			root.dataset.photoAttempts = String(Number(root.dataset.photoAttempts ?? 0) + 1)
+			return new Promise<Response>((_resolve, reject) => {
+				options?.signal?.addEventListener('abort', () => {
+					reject(new DOMException('Aborted', 'AbortError'))
+				})
+			})
+		}
+	})
+	const dialog = await openGallery(page)
+	let downloads = 0
+	page.on('download', () => {
+		downloads++
+	})
+	await dialog.getByRole('button', { name: 'Скачать фото (3)' }).click()
+	const root = page.locator('html')
+	await expect(root).toHaveAttribute('data-photo-attempts', '1')
+	await page.clock.runFor(15_050)
+	await expect(root).toHaveAttribute('data-photo-attempts', '2')
+	await page.clock.runFor(15_050)
+	await expect(dialog.getByRole('alert')).toContainText('не загрузилось вовремя')
+	expect(downloads).toBe(0)
+})
