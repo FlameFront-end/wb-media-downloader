@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 
-import { cardFixture, KNOWN_NM, MISSING_NM } from '../../../../test/msw/fixtures/wb'
-import { server } from '../../../../test/msw/server'
-import { renderWithProviders } from '../../../../test/render'
+import { cardFixture, KNOWN_NM, MISSING_NM } from '../../../../../test/msw/fixtures/wb'
+import { server } from '../../../../../test/msw/server'
+import { renderWithProviders } from '../../../../../test/render'
 
 import { ProductMediaModal } from './ProductMediaModal'
 

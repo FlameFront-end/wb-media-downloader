@@ -2,18 +2,17 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { KNOWN_NM } from '../../../../test/msw/fixtures/wb'
-import { renderWithProviders } from '../../../../test/render'
-import { loadProductMediaModal } from '../lib/load-product-media-modal'
-import { reloadPage } from '../lib/reload-page'
+import { KNOWN_NM } from '../../../../../test/msw/fixtures/wb'
+import { renderWithProviders } from '../../../../../test/render'
+import { loadProductMediaModal } from '../../lib/load-product-media-modal'
+import { reloadPage } from '../../lib/reload-page'
+import { HomePage } from '../HomePage/HomePage'
 
-import { HomePage } from './HomePage'
-
-vi.mock('../lib/load-product-media-modal', () => ({
+vi.mock('../../lib/load-product-media-modal', () => ({
 	loadProductMediaModal: vi.fn(),
 	preloadProductMediaModal: vi.fn()
 }))
-vi.mock('../lib/reload-page', () => ({ reloadPage: vi.fn() }))
+vi.mock('../../lib/reload-page', () => ({ reloadPage: vi.fn() }))
 
 async function openArticle() {
 	const user = userEvent.setup()

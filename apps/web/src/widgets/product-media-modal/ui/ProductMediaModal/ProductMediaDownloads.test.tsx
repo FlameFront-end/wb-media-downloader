@@ -7,10 +7,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { productQueries } from '@/entities/product'
 
-import { blobBytes, captureDownloads, waitForSingleDownload } from '../../../../test/downloads'
-import { cardFixture, KNOWN_NM } from '../../../../test/msw/fixtures/wb'
-import { server } from '../../../../test/msw/server'
-import { renderWithProviders } from '../../../../test/render'
+import { blobBytes, captureDownloads, waitForSingleDownload } from '../../../../../test/downloads'
+import { cardFixture, KNOWN_NM } from '../../../../../test/msw/fixtures/wb'
+import { server } from '../../../../../test/msw/server'
+import { renderWithProviders } from '../../../../../test/render'
 
 import { ProductMediaModal } from './ProductMediaModal'
 

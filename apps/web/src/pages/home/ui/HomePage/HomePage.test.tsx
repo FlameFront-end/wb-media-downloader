@@ -2,8 +2,8 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
-import { cardFixture, KNOWN_NM } from '../../../../test/msw/fixtures/wb'
-import { renderWithProviders } from '../../../../test/render'
+import { cardFixture, KNOWN_NM } from '../../../../../test/msw/fixtures/wb'
+import { renderWithProviders } from '../../../../../test/render'
 
 import { HomePage } from './HomePage'
 

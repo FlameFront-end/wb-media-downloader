@@ -3,10 +3,10 @@ import { fileURLToPath } from 'node:url'
 
 import { transformWithOxc, type Plugin } from 'vite'
 
-import { DEFAULT_MANTINE_COLOR_SCHEME } from '../src/app/styles/color-scheme.ts'
+import { DEFAULT_MANTINE_COLOR_SCHEME } from '../src/app/styles/color-scheme/color-scheme.ts'
 
-const stylesPath = new URL('../src/app/styles/color-scheme-critical.css', import.meta.url)
-const scriptPath = fileURLToPath(new URL('../src/app/styles/color-scheme-init.ts', import.meta.url))
+const stylesPath = new URL('../src/app/styles/color-scheme/color-scheme-critical.css', import.meta.url)
+const scriptPath = fileURLToPath(new URL('../src/app/styles/color-scheme/color-scheme-init.ts', import.meta.url))
 
 export function injectMantineColorSchemeHtml(): Plugin {
 	return {

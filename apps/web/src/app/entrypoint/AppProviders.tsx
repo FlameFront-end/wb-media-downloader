@@ -8,7 +8,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { ErrorFallback } from '@/shared/ui'
 
 import { createQueryClient } from '../query/query-client'
-import { DEFAULT_MANTINE_COLOR_SCHEME } from '../styles/color-scheme'
+import { DEFAULT_MANTINE_COLOR_SCHEME } from '../styles/color-scheme/color-scheme'
 import { theme } from '../styles/theme'
 
 interface AppProvidersProps {

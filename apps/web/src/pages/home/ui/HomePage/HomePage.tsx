@@ -2,11 +2,11 @@ import { useRef, useState } from 'react'
 
 import { Box, Container, Stack, Text, Title } from '@mantine/core'
 
-import { loadProductMediaModal, preloadProductMediaModal } from '../lib/load-product-media-modal'
+import { loadProductMediaModal, preloadProductMediaModal } from '../../lib/load-product-media-modal'
+import { ArticleForm } from '../ArticleForm/ArticleForm'
+import { LazyProductMediaModal } from '../LazyProductMediaModal/LazyProductMediaModal'
 
-import { ArticleForm } from './ArticleForm'
 import classes from './HomePage.module.css'
-import { LazyProductMediaModal } from './LazyProductMediaModal'
 
 export function HomePage() {
 	const [productId, setProductId] = useState<number | null>(null)

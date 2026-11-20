@@ -5,10 +5,10 @@ import { useQuery } from '@tanstack/react-query'
 
 import { ProductNotFoundError, productQueries } from '@/entities/product'
 
-import { describeLoadError } from '../lib/describe-load-error'
+import { describeLoadError } from '../../lib/describe-load-error'
+import { ProductGallery } from '../ProductGallery/ProductGallery'
+import { ProductMediaMessage } from '../ProductMediaMessage/ProductMediaMessage'
 
-import { ProductGallery } from './ProductGallery'
-import { ProductMediaMessage } from './ProductMediaMessage'
 import classes from './ProductMediaModal.module.css'
 
 interface ProductMediaContentProps {

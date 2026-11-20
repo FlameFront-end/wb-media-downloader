@@ -11,5 +11,5 @@
 		"allowImportingTsExtensions": true,
 		"noEmit": true
 	},
-	"include": ["vite.config.ts", "vitest.config.ts", "vite/**/*.ts", "src/app/styles/color-scheme.ts"]
+	"include": ["vite.config.ts", "vitest.config.ts", "vite/**/*.ts", "src/app/styles/color-scheme/color-scheme.ts"]
 }

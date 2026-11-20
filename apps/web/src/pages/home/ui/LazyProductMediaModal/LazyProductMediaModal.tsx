@@ -5,8 +5,8 @@ import { ErrorBoundary } from 'react-error-boundary'
 
 import type { ProductMediaModalProps } from '@/widgets/product-media-modal'
 
-import { loadProductMediaModal } from '../lib/load-product-media-modal'
-import { reloadPage } from '../lib/reload-page'
+import { loadProductMediaModal } from '../../lib/load-product-media-modal'
+import { reloadPage } from '../../lib/reload-page'
 
 import classes from './LazyProductMediaModal.module.css'
 

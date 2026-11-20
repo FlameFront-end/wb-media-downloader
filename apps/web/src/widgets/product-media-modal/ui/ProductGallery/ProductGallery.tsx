@@ -9,8 +9,9 @@ import { DownloadVideoButton } from '@/features/download-video'
 import { SelectablePhoto, SelectAllPhotos, usePhotoSelection } from '@/features/select-photos'
 import { DownloadControlSkeleton } from '@/shared/ui'
 
+import { GalleryLayout } from '../GalleryLayout/GalleryLayout'
+
 import { SKELETON_TILES } from './gallery-grid'
-import { GalleryLayout } from './GalleryLayout'
 import classes from './ProductGallery.module.css'
 
 interface ProductGalleryProps {

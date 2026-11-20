@@ -2,7 +2,7 @@ import { useState, type SubmitEvent } from 'react'
 
 import { Box, Button, TextInput } from '@mantine/core'
 
-import { parseArticle } from '../model/parse-article'
+import { parseArticle } from '../../model/parse-article'
 
 import classes from './ArticleForm.module.css'
 
