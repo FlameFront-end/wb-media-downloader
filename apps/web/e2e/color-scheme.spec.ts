@@ -4,7 +4,7 @@ test.describe('theme before the application bundle runs', () => {
 	test.use({ colorScheme: 'dark' })
 
 	test.beforeEach(async ({ page }) => {
-		await page.route('**/assets/index-*.js', route => route.abort())
+		await page.route('**/assets/index-*.{js,css}', route => route.abort())
 	})
 
 	test('uses the system theme when storage is unavailable', async ({ page }) => {

@@ -1,25 +1,34 @@
-import type { Plugin } from 'vite'
+import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
-import {
-	buildMantineColorSchemeInitScript,
-	DEFAULT_MANTINE_COLOR_SCHEME,
-	MANTINE_COLOR_SCHEME_CRITICAL_CSS
-} from '../src/app/styles/color-scheme.ts'
+import { transformWithOxc, type Plugin } from 'vite'
+
+import { DEFAULT_MANTINE_COLOR_SCHEME } from '../src/app/styles/color-scheme.ts'
+
+const stylesPath = new URL('../src/app/styles/color-scheme-critical.css', import.meta.url)
+const scriptPath = fileURLToPath(new URL('../src/app/styles/color-scheme-init.ts', import.meta.url))
 
 export function injectMantineColorSchemeHtml(): Plugin {
 	return {
 		name: 'inject-mantine-color-scheme-html',
 		transformIndexHtml: {
 			order: 'pre',
-			handler(html) {
-				const initScript = buildMantineColorSchemeInitScript(DEFAULT_MANTINE_COLOR_SCHEME)
-				const injection = [
-					'<meta name="color-scheme" content="light dark" />',
-					`<style id="mantine-color-scheme-critical">${MANTINE_COLOR_SCHEME_CRITICAL_CSS}</style>`,
-					`<script data-mantine-script>${initScript}</script>`
-				].join('\n\t\t')
+			async handler() {
+				const [css, script] = await Promise.all([readFile(stylesPath, 'utf8'), readFile(scriptPath, 'utf8')])
+				const { code } = await transformWithOxc(script, scriptPath)
 
-				return html.replace('<head>', `<head>\n\t\t${injection}`)
+				return [
+					{ tag: 'style', children: css, injectTo: 'head' },
+					{
+						tag: 'script',
+						attrs: {
+							'data-mantine-script': true,
+							'data-default-color-scheme': DEFAULT_MANTINE_COLOR_SCHEME
+						},
+						children: code,
+						injectTo: 'head'
+					}
+				]
 			}
 		}
 	}

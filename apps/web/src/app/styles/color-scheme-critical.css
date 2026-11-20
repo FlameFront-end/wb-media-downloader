@@ -1,0 +1,18 @@
+/* Match the default Mantine colors until its stylesheet loads. */
+html[data-mantine-color-scheme="dark"] {
+	color-scheme: dark;
+	background: #242424;
+	color: #c9c9c9;
+}
+
+html[data-mantine-color-scheme="light"] {
+	color-scheme: light;
+	background: #fff;
+	color: #000;
+}
+
+body {
+	margin: 0;
+	background: inherit;
+	color: inherit;
+}
