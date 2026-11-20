@@ -3,7 +3,7 @@ import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { unzipSync } from 'fflate'
 import { http, HttpResponse } from 'msw'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { productQueries } from '@/entities/product'
 
@@ -71,6 +71,31 @@ const buttons = [
 describe('ProductMediaModal downloads', () => {
 	afterEach(() => {
 		onlineManager.setOnline(true)
+	})
+
+	it.each(buttons)('fetches $name again after closing and reopening the gallery', async ({ label, requests }) => {
+		const downloads = captureDownloads()
+		const counter = countMediaRequests()
+		const user = userEvent.setup()
+		const { rerender } = renderModal()
+		const onClose = () => undefined
+
+		await user.click(await screen.findByRole('button', { name: label }))
+		await waitForSingleDownload(downloads)
+		const firstRequestCount = counter[requests]
+		expect(firstRequestCount).toBeGreaterThan(0)
+
+		rerender(<ProductMediaModal productId={null} onClose={onClose} />)
+		await waitFor(() => {
+			expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+		})
+		rerender(<ProductMediaModal productId={KNOWN_NM} onClose={onClose} />)
+		await user.click(await screen.findByRole('button', { name: label }))
+
+		await waitFor(() => {
+			expect(downloads).toHaveLength(2)
+		})
+		expect(counter[requests]).toBe(firstRequestCount * 2)
 	})
 
 	describe.each(buttons)('$name while offline', ({ label, requests }) => {
@@ -181,7 +206,7 @@ describe('ProductMediaModal downloads', () => {
 			])
 		})
 
-		it('confirms the saved archive', async () => {
+		it('announces that the archive is ready', async () => {
 			const downloads = captureDownloads()
 			const user = userEvent.setup()
 			renderModal()
@@ -190,7 +215,7 @@ describe('ProductMediaModal downloads', () => {
 			await user.click(await screen.findByRole('button', { name: 'Скачать фото (3)' }))
 			await waitForSingleDownload(downloads)
 
-			expect(await screen.findByRole('status')).toHaveTextContent('Архив сохранён')
+			expect(await screen.findByRole('status')).toHaveTextContent('Архив готов')
 		})
 
 		it('puts only selected photos into the archive', async () => {
@@ -310,6 +335,67 @@ describe('ProductMediaModal downloads', () => {
 			const download = await waitForSingleDownload(downloads)
 			expect(download.filename).toBe(`wb-${KNOWN_NM}-video-1440p.mp4`)
 			expect(download.blob.type).toBe('video/mp4')
+		})
+
+		it('builds a new video if the playlist URL changes for the same product', async () => {
+			const downloads = captureDownloads()
+			const counter = countMediaRequests()
+			const user = userEvent.setup()
+			const { queryClient } = renderModal()
+			const button = await screen.findByRole('button', { name: 'Скачать видео' })
+
+			await user.click(button)
+			await waitForSingleDownload(downloads)
+			const initialRequests = counter.video
+
+			act(() => {
+				queryClient.setQueryData(productQueries.detail(KNOWN_NM).queryKey, product =>
+					product?.videoAvailability === 'available'
+						? {
+								...product,
+								video: {
+									sources: product.video.sources.map(source => ({
+										...source,
+										playlistUrl: `${source.playlistUrl}?revision=2`
+									}))
+								}
+							}
+						: product
+				)
+			})
+
+			await user.click(button)
+			await waitFor(() => {
+				expect(downloads).toHaveLength(2)
+			})
+			expect(counter.video).toBeGreaterThan(initialRequests)
+		})
+
+		it('keeps the prepared video available if the browser cannot open its download', async () => {
+			const downloads = captureDownloads()
+			const counter = countMediaRequests()
+			const user = userEvent.setup()
+			renderModal()
+			const button = await screen.findByRole('button', { name: 'Скачать видео' })
+
+			await user.click(button)
+			const first = await waitForSingleDownload(downloads)
+			const initialRequests = counter.video
+			vi.spyOn(URL, 'createObjectURL').mockImplementationOnce(() => {
+				throw new Error('Browser could not create a download URL')
+			})
+
+			await user.click(button)
+			const error = await screen.findByRole('alert')
+			expect(error).toHaveTextContent('Не удалось скачать видео.')
+			expect(downloads).toHaveLength(1)
+
+			await user.click(button)
+			await waitFor(() => {
+				expect(downloads).toHaveLength(2)
+			})
+			expect(downloads[1]?.blob).toBe(first.blob)
+			expect(counter.video).toBe(initialRequests)
 		})
 
 		it('downloads video chosen at click even if the card changes while paused', async () => {

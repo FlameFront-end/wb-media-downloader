@@ -63,7 +63,7 @@ export function DownloadVideoButton({ product, active }: DownloadVideoButtonProp
 				return `${done} из ${total} · ${loaded}`
 			}}
 			formatError={formatError}
-			savedMessage='Видео сохранено'
+			savedMessage='Видео готово'
 		/>
 	)
 }

@@ -16,7 +16,8 @@ export function useDownloadVideo(product: Product, active: boolean) {
 			return
 		}
 
-		start(async context => {
+		const key = JSON.stringify([id, video.sources])
+		start(key, async context => {
 			const { quality, file } = await downloadProductVideo(video, context)
 
 			return { file, filename: `wb-${id}-video-${quality}.mp4` }

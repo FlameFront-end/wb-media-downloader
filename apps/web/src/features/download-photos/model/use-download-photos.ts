@@ -25,7 +25,8 @@ export function useDownloadPhotos(product: Product, active: boolean) {
 			}
 
 			const filename = `wb-${product.id}-photos.zip`
-			start(async context => ({ file: await createPhotosZip(entries, context), filename }))
+			const key = JSON.stringify([filename, entries])
+			start(key, async context => ({ file: await createPhotosZip(entries, context), filename }))
 		},
 		[start, product]
 	)

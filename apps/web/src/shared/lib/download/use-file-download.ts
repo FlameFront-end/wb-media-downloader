@@ -26,6 +26,7 @@ export interface DownloadedFile {
 export type DownloadTask = (context: DownloadTaskContext) => Promise<DownloadedFile>
 
 interface DownloadVariables {
+	key: string
 	task: DownloadTask
 	signal: AbortSignal
 }
@@ -46,7 +47,7 @@ export interface DownloadState {
 }
 
 export interface FileDownload extends DownloadState {
-	start: (task: DownloadTask) => void
+	start: (key: string, task: DownloadTask) => void
 }
 
 /**
@@ -58,19 +59,39 @@ const SAVED_HINT_MS = 2500
 
 export function useFileDownload(mutationKey: MutationKey, active: boolean): FileDownload {
 	const controllerRef = useRef<AbortController | null>(null)
+	const preparedRef = useRef<{ key: string; download: DownloadedFile } | null>(null)
 	const savedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 	const [progress, setProgress] = useState<DownloadProgress | null>(null)
 	const [isSaved, setIsSaved] = useState(false)
+	const [handoffError, setHandoffError] = useState<Error | null>(null)
 
 	const hideSaved = useCallback(() => {
 		clearTimeout(savedTimerRef.current)
 		setIsSaved(false)
 	}, [])
 
+	const offerDownload = useCallback(({ file, filename }: DownloadedFile) => {
+		try {
+			saveBlob(file, filename)
+		} catch (error) {
+			setHandoffError(
+				error instanceof Error ? error : new Error('Could not offer the file to the browser', { cause: error })
+			)
+			return
+		}
+
+		setIsSaved(true)
+		clearTimeout(savedTimerRef.current)
+		savedTimerRef.current = setTimeout(() => {
+			setIsSaved(false)
+		}, SAVED_HINT_MS)
+	}, [])
+
 	// Closing starts before unmount when the dialog animates out.
 	useLayoutEffect(() => {
 		if (!active) {
 			controllerRef.current?.abort()
+			preparedRef.current = null
 		}
 	}, [active])
 
@@ -78,6 +99,7 @@ export function useFileDownload(mutationKey: MutationKey, active: boolean): File
 	useEffect(
 		() => () => {
 			controllerRef.current?.abort()
+			preparedRef.current = null
 			clearTimeout(savedTimerRef.current)
 		},
 		[]
@@ -85,11 +107,11 @@ export function useFileDownload(mutationKey: MutationKey, active: boolean): File
 
 	const { mutate, reset, isPending, isPaused, error } = useMutation({
 		mutationKey,
-		mutationFn: async ({ task, signal }: DownloadVariables) => {
+		mutationFn: async ({ key, task, signal }: DownloadVariables) => {
 			// The mutation may start later than the click (paused while offline)
 			signal.throwIfAborted()
 
-			const { file, filename } = await task({
+			const download = await task({
 				signal,
 				onProgress: (done, total, bytesReceived) => {
 					if (!signal.aborted) {
@@ -99,13 +121,8 @@ export function useFileDownload(mutationKey: MutationKey, active: boolean): File
 			})
 
 			signal.throwIfAborted()
-			saveBlob(file, filename)
-
-			setIsSaved(true)
-			clearTimeout(savedTimerRef.current)
-			savedTimerRef.current = setTimeout(() => {
-				setIsSaved(false)
-			}, SAVED_HINT_MS)
+			preparedRef.current = { key, download }
+			offerDownload(download)
 		},
 		onSettled: (_data, _error, { signal }) => {
 			// A cancelled run may settle after a newer one started: don't clear its progress
@@ -116,17 +133,30 @@ export function useFileDownload(mutationKey: MutationKey, active: boolean): File
 	})
 
 	const start = useCallback(
-		(task: DownloadTask) => {
+		(key: string, task: DownloadTask) => {
 			if (!active) {
 				return
 			}
 			hideSaved()
+			setHandoffError(null)
+			setProgress(null)
 			controllerRef.current?.abort()
+
+			// A prepared file can go straight to the browser, even when offline.
+			const prepared = preparedRef.current
+			if (prepared?.key === key) {
+				controllerRef.current = null
+				reset()
+				offerDownload(prepared.download)
+				return
+			}
+
+			preparedRef.current = null
 			const controller = new AbortController()
 			controllerRef.current = controller
-			mutate({ task, signal: controller.signal })
+			mutate({ key, task, signal: controller.signal })
 		},
-		[active, mutate, hideSaved]
+		[active, mutate, reset, hideSaved, offerDownload]
 	)
 
 	const cancel = useCallback(() => {
@@ -138,14 +168,19 @@ export function useFileDownload(mutationKey: MutationKey, active: boolean): File
 		hideSaved()
 	}, [reset, hideSaved])
 
+	const dismissError = useCallback(() => {
+		setHandoffError(null)
+		reset()
+	}, [reset])
+
 	return {
 		start,
 		cancel,
 		progress,
 		isPending,
 		isPaused,
-		error: error && !isAbortError(error) ? error : null,
+		error: handoffError ?? (error && !isAbortError(error) ? error : null),
 		isSaved,
-		dismissError: reset
+		dismissError
 	}
 }

@@ -47,7 +47,7 @@ export function DownloadPhotosButton({ product, active, selectedIndexes }: Downl
 			progressLabel='Прогресс скачивания фото'
 			formatProgress={({ done, total }) => `Загружено ${done} из ${total}`}
 			formatError={formatError}
-			savedMessage='Архив сохранён'
+			savedMessage='Архив готов'
 		/>
 	)
 }

@@ -206,8 +206,8 @@ test('progress and the saved message play inside the button without moving it', 
 	releasePhotos()
 	await downloaded
 
-	await expect(dialog.getByRole('status')).toHaveText('Архив сохранён')
-	await expect(button.getByText('Архив сохранён')).toHaveCSS('opacity', '1')
+	await expect(dialog.getByRole('status')).toHaveText('Архив готов')
+	await expect(button.getByText('Архив готов')).toHaveCSS('opacity', '1')
 	expect(await Promise.all([button.boundingBox(), footer.boundingBox()])).toEqual(idle)
 
 	await expect(dialog.getByRole('status')).toHaveCount(0, { timeout: 6000 })
