@@ -37,7 +37,8 @@ describe('createMp4Transmuxer', () => {
 		transmuxer.push(segmentFixtures['1'] as Uint8Array)
 		const file = transmuxer.finish(PLAYLIST_DURATION_SECONDS)
 		const bytes = await blobBytes(file)
-		const types = topLevelBoxes(bytes).map(box => box.type)
+		const boxes = topLevelBoxes(bytes)
+		const types = boxes.map(box => box.type)
 
 		expect(file.type).toBe('video/mp4')
 		expect(types.slice(0, 2)).toEqual(['ftyp', 'moov'])
@@ -46,6 +47,15 @@ describe('createMp4Transmuxer', () => {
 		expect(types.filter(type => type === 'mdat')).toHaveLength(fragments)
 
 		const view = new DataView(bytes.buffer)
+		const sequences = boxes
+			.filter(box => box.type === 'moof')
+			.map(box => {
+				const moof = bytes.subarray(box.offset, box.offset + box.size)
+				const mfhd = findBox(moof, 'mfhd')
+				return view.getUint32(box.offset + mfhd + 12)
+			})
+		expect(sequences).toEqual([1, 2, 3, 4])
+
 		const mvhd = findBox(bytes, 'mvhd')
 		const timescale = view.getUint32(mvhd + 20)
 		const duration = view.getUint32(mvhd + 24)

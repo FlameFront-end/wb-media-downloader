@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { setMp4Duration } from './mp4-duration'
+import { setMp4Duration } from './mp4-headers'
 
 function box(type: string, payload: number[]): number[] {
 	const size = 8 + payload.length
@@ -45,17 +45,20 @@ function readDurations(bytes: Uint8Array, version: 0 | 1) {
 }
 
 describe('setMp4Duration', () => {
-	it.each([0, 1] as const)('writes movie and track durations (box version %i)', version => {
-		const source = initSegment(version)
-		const patched = setMp4Duration(source, 11.432)
+	it.each([0, 1] as const)(
+		'writes the movie duration and leaves track timing to the fragments (box version %i)',
+		version => {
+			const source = initSegment(version)
+			const patched = setMp4Duration(source, 11.432)
 
-		expect(readDurations(patched, version)).toEqual({
-			mvhd: Math.round(11.432 * 90_000),
-			tkhd: Math.round(11.432 * 90_000),
-			mdhd: Math.round(11.432 * 22_050)
-		})
-		expect(readDurations(source, version).mvhd).toBe(UNKNOWN)
-	})
+			expect(readDurations(patched, version)).toEqual({
+				mvhd: Math.round(11.432 * 90_000),
+				tkhd: 0,
+				mdhd: 0
+			})
+			expect(readDurations(source, version).mvhd).toBe(UNKNOWN)
+		}
+	)
 
 	it('returns an unchanged copy when there is no movie header', () => {
 		const source = new Uint8Array(box('ftyp', [1, 2, 3, 4]))

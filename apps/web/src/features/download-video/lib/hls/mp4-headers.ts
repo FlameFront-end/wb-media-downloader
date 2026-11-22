@@ -1,4 +1,4 @@
-const CONTAINER_BOXES = new Set(['moov', 'trak', 'mdia'])
+const CONTAINER_BOXES = new Set(['moov', 'trak', 'mdia', 'moof'])
 const MAX_UINT32 = 0xffffffff
 
 interface Box {
@@ -61,8 +61,9 @@ function readTimescale(view: DataView, box: Box): number {
 
 /**
  * mux.js writes "unknown" (0xffffffff) durations into the init segment, so
- * players show a wrong length for the saved file. Fills mvhd, tkhd and mdhd
- * with the real duration. Returns a patched copy.
+ * players show a wrong length for the saved file. Keep the total in mvhd,
+ * but leave the track durations to the fragments. Otherwise Safari adds
+ * the fragment durations to the duration already declared in the track.
  */
 export function setMp4Duration(initSegment: Uint8Array<ArrayBuffer>, durationSeconds: number): Uint8Array<ArrayBuffer> {
 	const patched = initSegment.slice()
@@ -80,14 +81,27 @@ export function setMp4Duration(initSegment: Uint8Array<ArrayBuffer>, durationSec
 	writeDuration(view, mvhd, movieDuration)
 
 	for (const box of boxes) {
-		if (box.type === 'tkhd') {
-			writeDuration(view, box, movieDuration)
-		}
-
-		if (box.type === 'mdhd') {
-			writeDuration(view, box, Math.round(durationSeconds * readTimescale(view, box)))
+		if (box.type === 'tkhd' || box.type === 'mdhd') {
+			writeDuration(view, box, 0)
 		}
 	}
 
 	return patched
+}
+
+/**
+ * mux.js numbers audio and video fragments separately. Safari needs a single
+ * increasing sequence in file order to read the timeline past the first fragment.
+ * Only the headers are changed, leaving the encoded sample data untouched.
+ */
+export function numberMp4Fragments(bytes: Uint8Array, sequence: number): number {
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+
+	for (const box of readBoxes(view, 0, bytes.byteLength)) {
+		if (box.type === 'mfhd' && box.size >= 16) {
+			view.setUint32(box.offset + 12, sequence++)
+		}
+	}
+
+	return sequence
 }

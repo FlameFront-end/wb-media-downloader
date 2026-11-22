@@ -1,5 +1,5 @@
 import { InvalidSegmentError, UnsupportedPlaylistError } from './errors'
-import { setMp4Duration } from './mp4-duration'
+import { numberMp4Fragments, setMp4Duration } from './mp4-headers'
 
 /** The part of mux.js `mp4.Transmuxer` used here (mux.js ships no type definitions). */
 interface TransmuxedSegment {
@@ -59,6 +59,7 @@ export async function createMp4Transmuxer(): Promise<Mp4Transmuxer> {
 	let initSegment: Uint8Array<ArrayBuffer> | null = null
 	const fragments: Uint8Array<ArrayBuffer>[] = []
 	let nonIncreasingTime = false
+	let fragmentSequence = 1
 
 	const timingEvents: TimingEvent[] = ['videoSegmentTimingInfo', 'audioSegmentTimingInfo']
 	for (const event of timingEvents) {
@@ -73,6 +74,7 @@ export async function createMp4Transmuxer(): Promise<Mp4Transmuxer> {
 
 	transmuxer.on('data', segment => {
 		initSegment ??= segment.initSegment
+		fragmentSequence = numberMp4Fragments(segment.data, fragmentSequence)
 		fragments.push(segment.data)
 	})
 
